@@ -60,6 +60,10 @@ class LocalDialogIO:
     async def send_character_dialogue(self, channel_name: str, character: Character, text: str) -> None:
         await self.record(channel_name, "dialogue", text, speaker=character.name, character=character.key)
 
+    async def send_channel_link(self, channel_name: str, label: str, target_channel_name: str) -> None:
+        await self.ensure_channel(target_channel_name)
+        await self.record(channel_name, "channel_link", label, target=target_channel_name)
+
     async def wait_for_input(self, channel_name: str, prompt: str | None = None) -> str:
         if prompt:
             await self.record(channel_name, "input_prompt", prompt)

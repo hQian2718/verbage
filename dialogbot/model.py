@@ -128,6 +128,12 @@ class ClearChannel(Statement):
 
 
 @dataclass
+class ChannelLink(Statement):
+    text: str
+    channel: str
+
+
+@dataclass
 class ExprStatement(Statement):
     expression: str
 

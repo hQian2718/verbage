@@ -179,6 +179,17 @@ clear channel "Restroom"
 
 - Purges all messages in the named channel.
 
+## Channel link
+
+```
+channel link "Return to Great Hall" to "Great Hall"
+```
+
+- Posts a non-blocking button that opens the target channel.
+- Discord does not let bots forcibly switch a user's current channel view; this
+  renders as a link button instead.
+- The target channel is lazy-created if needed.
+
 ## Expression statements
 
 ```

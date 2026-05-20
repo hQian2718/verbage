@@ -83,6 +83,7 @@ The adapter is responsible for translating runtime requests:
 
 - `ensure_channel("Kitchen")`
 - `send_character_dialogue("Kitchen", character, text)`
+- `send_channel_link("Kitchen", "Return to Great Hall", "Great Hall")`
 - `wait_for_button("Kitchen", "Look around")`
 - `wait_for_input("Restroom", "What do you inspect?")`
 - `clear_channel("Banquet Hall")`

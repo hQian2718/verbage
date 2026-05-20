@@ -96,6 +96,15 @@ button "Look around":
     $ kitchen_investigator = username()
 ```
 
+## Channel Links
+
+`channel link "Label" to "Channel"` posts a non-blocking navigation button.
+Discord link buttons open the target channel for the user, but do not produce a
+click event, so this statement never blocks script execution.
+
+The runtime asks the IO adapter to create or resolve the target channel before
+posting the link.
+
 ## Variables
 
 Variables must be declared with `default` before use. All events in a session

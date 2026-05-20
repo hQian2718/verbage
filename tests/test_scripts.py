@@ -66,6 +66,7 @@ label setup:
 
 label start(channel="Room"):
     n "Welcome."
+    channel link "Go outside" to "Outside"
     button "Look":
         $ clicker = username()
     n "$clicker looked."
@@ -93,6 +94,10 @@ label start(channel="Room"):
             self.assertEqual(session.variables["clicker"], "Alice")
             self.assertEqual(session.variables["answer"], "inspect the portrait")
             self.assertTrue((output_dir / "room.jsonl").exists())
+            self.assertIn(
+                ("channel_link", "Go outside", "Outside"),
+                [(event["kind"], event["text"], event.get("target")) for event in io.events],
+            )
             self.assertIn(
                 ("input_prompt", "What do you inspect?"),
                 [(event["kind"], event["text"]) for event in io.events],
@@ -239,6 +244,10 @@ label done(channel="Room"):
             events = [(event["channel"], event["kind"], event["text"]) for event in io.events]
             self.assertIn(("Banquet Hall", "narration", "YOU WIN!"), events)
             self.assertIn(("Great Hall", "dialogue", "End of the game."), events)
+            self.assertEqual(
+                3,
+                len([event for event in io.events if event["kind"] == "channel_link" and event.get("target") == "Great Hall"]),
+            )
             self.assertTrue((output_dir / "entrance.jsonl").exists())
             self.assertTrue((output_dir / "banquet-hall.jsonl").exists())
 

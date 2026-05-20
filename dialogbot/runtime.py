@@ -12,6 +12,7 @@ from .expressions import eval_condition, eval_expr_text, exec_statement
 from .io import DialogIO, MenuChoice, UserAction
 from .model import (
     Button,
+    ChannelLink,
     ClearChannel,
     Dialogue,
     ExprStatement,
@@ -253,6 +254,8 @@ class GameSession:
             self.known_channels.add(statement.channel)
             await self.io.ensure_channel(statement.channel)
             await self.io.clear_channel(statement.channel)
+        elif isinstance(statement, ChannelLink):
+            await self.send_channel_link(context, statement)
         elif isinstance(statement, ExprStatement):
             await exec_statement(statement.expression, context)
         elif isinstance(statement, TimeLimit):
@@ -304,6 +307,13 @@ class GameSession:
             return
         character = self.game.characters[statement.character]
         await self.io.send_character_dialogue(context.channel_name, character, text)
+
+    async def send_channel_link(self, context: EventContext, statement: ChannelLink) -> None:
+        if not context.channel_name:
+            raise RuntimeErrorWithContext("channel link emitted before entering a channel")
+        self.known_channels.add(statement.channel)
+        await self.io.ensure_channel(statement.channel)
+        await self.io.send_channel_link(context.channel_name, statement.text, statement.channel)
 
     async def interpolate(self, text: str, context: EventContext) -> str:
         async def replace_expr(match: re.Match[str]) -> str:

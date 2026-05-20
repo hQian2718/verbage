@@ -33,6 +33,7 @@ label kitchen(channel="Kitchen"):
 
     n "The cook looks at $kitchen_investigator suspiciously."
     n "THERE IS NOTHING ELSE TO DO IN THE KITCHEN."
+    channel link "Return to Great Hall" to "Great Hall"
 
 label restroom(channel="Restroom"):
     n "The restroom is fancy and clean."
@@ -43,6 +44,7 @@ label restroom(channel="Restroom"):
     n "Its faded smile is unnerving."
 
     n "THERE IS NOTHING ELSE TO DO HERE. YOU SHOULD RETURN."
+    channel link "Return to Great Hall" to "Great Hall"
 
 label banquet_hall(channel="Banquet Hall"):
     n "The hall is dingy."
@@ -51,6 +53,7 @@ label banquet_hall(channel="Banquet Hall"):
     n "You spot a locked door to what looks like a cleaning closet."
     n "Above the door, a portrait of Winnie the Pooh looks at you."
     n "YOU SHOULD RETURN, THERE IS NOTHING TO BE DONE HERE."
+    channel link "Return to Great Hall" to "Great Hall"
 
 label restroom_2(channel="Restroom"):
     n "The restroom is fancy and clean."

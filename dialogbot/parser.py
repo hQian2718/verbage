@@ -9,6 +9,7 @@ from typing import Any
 from .expressions import ExpressionError, validate_condition, validate_statement
 from .model import (
     Button,
+    ChannelLink,
     Character,
     ClearChannel,
     Dialogue,
@@ -211,6 +212,9 @@ class Parser:
         if text.startswith("clear channel "):
             self.index += 1
             return ClearChannel(line.source, parse_string_literal(text[len("clear channel ") :], line, self))
+        if text.startswith("channel link "):
+            self.index += 1
+            return parse_channel_link(line, self)
         if text.startswith("$"):
             self.index += 1
             return ExprStatement(line.source, text[1:].strip())
@@ -349,6 +353,19 @@ def parse_time_limit(text: str, line: Line, parser: Parser) -> float:
     if unit.startswith("hour"):
         return amount * 3600
     return amount
+
+
+def parse_channel_link(line: Line, parser: Parser) -> ChannelLink:
+    match = re.match(r'channel\s+link\s+(".*")\s+to\s+(".*")$', line.text)
+    if not match:
+        parser.error(line, 'invalid channel link; expected: channel link "Label" to "Channel"')
+        return ChannelLink(line.source, "", "")
+    label_raw, channel_raw = match.groups()
+    return ChannelLink(
+        line.source,
+        parse_string_literal(label_raw, line, parser),
+        parse_string_literal(channel_raw, line, parser),
+    )
 
 
 def parse_run_targets(raw: str) -> list[LabelRef]:

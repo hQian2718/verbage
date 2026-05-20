@@ -69,6 +69,13 @@ class DiscordDialogIO:
             LOGGER.exception("Webhook send failed in #%s (%s)", channel.name, channel.id)
             await channel.send(f"**{character.name}:** {text}")
 
+    async def send_channel_link(self, channel_name: str, label: str, target_channel_name: str) -> None:
+        channel = await self.get_or_create_channel(channel_name)
+        target = await self.get_or_create_channel(target_channel_name)
+        view = discord.ui.View()
+        view.add_item(discord.ui.Button(label=label, url=target.jump_url))
+        await channel.send(view=view)
+
     async def wait_for_input(self, channel_name: str, prompt: str | None = None) -> str:
         channel = await self.get_or_create_channel(channel_name)
         if prompt:
