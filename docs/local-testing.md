@@ -102,6 +102,8 @@ label start(channel="Room"):
 - Assert on `io.events` for transcript behavior.
 - Use `load_game("game")` in smoke tests to ensure the real sample game still
   parses.
+- For end-to-end tests against the real game, set `session.wait_scale = 0` so
+  script-level waits such as `wait 5` do not slow the suite down.
 
 ## Common Failure Modes
 

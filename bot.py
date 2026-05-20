@@ -8,6 +8,7 @@ from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
 
+from dialogbot.discord_io import DiscordDialogIO
 from dialogbot.parser import ScriptLoadError, load_game
 from dialogbot.runtime import GameManager
 
@@ -27,7 +28,7 @@ class DialogBot(commands.Bot):
         intents.messages = True
         intents.message_content = True
         super().__init__(command_prefix="!", intents=intents)
-        self.manager = GameManager(self)
+        self.manager = GameManager()
 
     async def setup_hook(self) -> None:
         guild_id = os.getenv("GUILD_ID")
@@ -59,7 +60,8 @@ async def start(interaction: discord.Interaction) -> None:
         return
 
     assert interaction.guild is not None
-    result = await bot.manager.start(interaction.guild, game)
+    io = DiscordDialogIO(bot, interaction.guild)
+    result = await bot.manager.start(interaction.guild.id, io, game)
     await interaction.followup.send(result)
 
 

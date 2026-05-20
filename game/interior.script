@@ -73,6 +73,7 @@ label secret_door_menu(channel="Banquet Hall"):
     if not secret_door_locked:
         "You hear a bolt retracting. The door springs open!"
         "YOU WIN!"
+        $ game_won = True
     else:   
         button "Inspect the door":
                 n "Above the door is a picture of Winnie the Pooh."

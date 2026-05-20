@@ -44,3 +44,29 @@ Commands are guild-scoped when `GUILD_ID` is set:
 - `/status`
 
 Game state is in memory for the MVP.
+
+## Local Testing Surface
+
+The script runtime is isolated from Discord behind `DialogIO` in
+`dialogbot/io.py`.
+
+- `dialogbot/discord_io.py` adapts the runtime to Discord channels, webhooks,
+  buttons, menus, and message waits.
+- `dialogbot/local_io.py` is a local adapter for tests. It writes JSONL
+  transcripts per channel and accepts queued button/menu/input events.
+
+Run local tests with:
+
+```sh
+python3 -m unittest discover -s tests
+```
+
+## Maintainer Docs
+
+- [Architecture](docs/architecture.md) explains the module layout and adapter
+  boundary.
+- [Runtime Semantics](docs/runtime-semantics.md) explains labels, jumps, run,
+  menus, buttons, variables, and expression evaluation from the implementer's
+  point of view.
+- [Local Testing](docs/local-testing.md) explains how to test scripts and
+  runtime behavior without Discord.
