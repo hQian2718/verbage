@@ -58,6 +58,8 @@ def validate_statement(statement: str, defaults: dict[str, Any]) -> None:
 
 
 async def eval_condition(expression: str, context: EvalContext) -> Any:
+    # contains is script syntax, not Python syntax, so handle it before using the
+    # Python AST for the rest of the restricted expression language.
     if has_contains(expression):
         return await eval_contains(expression, context)
     return await eval_expr_text(expression, context)
@@ -93,6 +95,8 @@ async def eval_expr_text(expression: str, context: EvalContext) -> Any:
 def validate_expr_text(expression: str, defaults: dict[str, Any]) -> None:
     if has_contains(expression):
         left, alternatives = split_contains(expression)
+        # input() blocks on Discord messages. The MVP allows at most one blocking
+        # read in a single expression so evaluation order stays obvious.
         input_count = count_builtin_calls(left, "input")
         input_count += sum(count_builtin_calls(item, "input") for item in alternatives)
         if input_count > 1:
@@ -195,6 +199,8 @@ def has_contains(expression: str) -> bool:
 
 
 def split_contains(expression: str) -> tuple[str, list[str]]:
+    # X contains A or B or C means:
+    # (X contains A) or (X contains B) or (X contains C)
     left, right = re.split(r"\scontains\s", expression, maxsplit=1)
     alternatives = split_top_level_or(right)
     if not left.strip() or not alternatives:
@@ -213,6 +219,8 @@ async def eval_contains(expression: str, context: EvalContext) -> bool:
 
 
 def split_top_level_or(expression: str) -> list[str]:
+    # Split only the distributed "or" terms for contains. Ignore "or" inside
+    # strings and parentheses so normal sub-expressions survive intact.
     parts: list[str] = []
     in_string = False
     escaped = False

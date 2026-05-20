@@ -39,12 +39,16 @@ class RuntimeErrorWithContext(Exception):
 
 
 class JumpSignal(Exception):
+    # Jumps are control-flow, not failures. Raising through nested blocks lets
+    # menus/buttons/ifs abort their current body exactly like a Ren'Py jump.
     def __init__(self, target: LabelRef) -> None:
         self.target = target
 
 
 @dataclass
 class EventContext:
+    # One EventContext represents one running script event. Parent and child
+    # events share session variables, but keep their own channel and clicker.
     session: "GameSession"
     event_id: str
     namespace: str
@@ -68,6 +72,8 @@ class EventContext:
         if not self.channel:
             raise RuntimeErrorWithContext("input() used before entering a channel")
 
+        # input() consumes the next human-authored message in the current event
+        # channel. Other concurrent events can still wait in their own channels.
         def check(message: discord.Message) -> bool:
             return message.channel.id == self.channel.id and not message.author.bot
 
@@ -111,6 +117,8 @@ class GameManager:
 
 @dataclass
 class GameSession:
+    # MVP state is intentionally in memory. A restart drops tasks, variables,
+    # channel locks, and webhook cache while leaving Discord channels intact.
     bot: commands.Bot
     guild: discord.Guild
     game: ScriptGame
@@ -143,6 +151,8 @@ class GameSession:
         current = asyncio.current_task()
         if self.timeout_task:
             self.timeout_task.cancel()
+        # Do not cancel the task currently executing stop(); timeout/fatal paths
+        # call this method from inside a tracked task.
         for task in list(self.tasks):
             if task is not current:
                 task.cancel()
@@ -186,6 +196,8 @@ class GameSession:
                 await self.release_channel(context)
                 return
             except JumpSignal as jump:
+                # jump never returns to the old label; it rebinds this same event
+                # to the target label and continues from the top of that body.
                 label = resolve_label(self.game, context.namespace, jump.target)
 
     async def bind_channel(self, context: EventContext, channel_name: str | None) -> None:
@@ -197,6 +209,8 @@ class GameSession:
             context.channel = None
             return
         async with self.active_lock:
+            # The language guarantees only one running label per channel. This
+            # catches accidental run/jump combinations that would interleave text.
             owner = self.active_channels.get(channel_name)
             if owner and owner != context.event_id:
                 raise RuntimeErrorWithContext(f"channel {channel_name!r} is already running")
@@ -254,6 +268,8 @@ class GameSession:
             finally:
                 await self.release_channel(child)
 
+        # run is fork-join: all child labels execute concurrently, and the parent
+        # resumes only after every child has finished.
         tasks = [asyncio.create_task(run_child(target)) for target in statement.targets]
         self.tasks.update(tasks)
         try:
@@ -288,6 +304,8 @@ class GameSession:
             await context.channel.send(f"*{text}*")
             return
         character = self.game.characters[statement.character]
+        # Character lines use webhooks so each speaker gets its own display name
+        # and avatar while still being driven by one bot process.
         webhook = await self.get_character_webhook(context.channel, character.key)
         await webhook.send(text, username=character.name, wait=True)
 
@@ -295,6 +313,8 @@ class GameSession:
         async def replace_expr(match: re.Match[str]) -> str:
             return str(await eval_expr_text(match.group(1), context))
 
+        # Evaluate explicit $(...) forms before shorthand $identifier so a
+        # variable name inside an expression is not substituted too early.
         result = ""
         last = 0
         for match in re.finditer(r"\$\(([^)]+)\)", text):
@@ -341,6 +361,8 @@ class GameSession:
                 context.last_click_user = user
                 option = statement.options[index]
                 try:
+                    # Menu choices execute inline. If the body does not jump,
+                    # the menu remains live for other users to click.
                     await self.execute_block(context, option.body)
                 except JumpSignal:
                     await disable_view(message, view)
@@ -358,6 +380,8 @@ class GameSession:
             category = await self.guild.create_category(self.category_name)
 
         topic = f"{self.channel_topic}: {display_name}"
+        # Topic is the stable lookup key, so renaming a channel in Discord does
+        # not make the bot create a duplicate on the next run.
         for channel in category.text_channels:
             if channel.topic == topic:
                 self.channel_cache[display_name] = channel
@@ -414,6 +438,8 @@ class MenuView(discord.ui.View):
 
     def make_callback(self, index: int):
         async def callback(interaction: discord.Interaction) -> None:
+            # Each user gets one vote per menu showing, but the menu can keep
+            # accepting other users until script execution jumps away.
             if interaction.user.id in self.clicked_users:
                 await interaction.response.send_message("You already chose an option for this menu.", ephemeral=True)
                 return
