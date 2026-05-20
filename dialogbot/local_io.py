@@ -91,6 +91,14 @@ class LocalDialogIO:
         self.channel_path(channel_name).write_text("")
         await self.record(channel_name, "clear", "")
 
+    async def delete_channels(self, channel_names: list[str]) -> None:
+        for channel_name in channel_names:
+            await self.record(channel_name, "delete", "")
+            try:
+                self.channel_path(channel_name).unlink()
+            except FileNotFoundError:
+                pass
+
     async def record(self, channel_name: str, kind: str, text: str, **extra: Any) -> None:
         event = {"channel": channel_name, "kind": kind, "text": text, **extra}
         self.events.append(event)

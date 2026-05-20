@@ -30,6 +30,12 @@ The bot needs these Discord permissions:
 
 Enable Message Content Intent in the Discord Developer Portal for `input()`.
 
+If character dialogue falls back to regular bot messages with a `Missing
+Permissions` warning, check the bot's effective permissions in the game category
+and channels. Updating the app's install settings does not always update an
+already-installed bot; re-authorize/reinvite it, and make sure category or
+channel permission overwrites are not denying `Manage Webhooks`.
+
 ## Run
 
 ```sh
@@ -44,6 +50,10 @@ Commands are guild-scoped when `GUILD_ID` is set:
 - `/status`
 
 Game state is in memory for the MVP.
+
+When a game finishes normally, the bot posts a final cleanup menu in the last
+story channel. Choosing **Delete game channels** deletes the channels used by
+that game session; choosing **Keep channels** leaves the transcript in place.
 
 ## Local Testing Surface
 

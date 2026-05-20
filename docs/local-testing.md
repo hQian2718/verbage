@@ -104,6 +104,9 @@ label start(channel="Room"):
   parses.
 - For end-to-end tests against the real game, set `session.wait_scale = 0` so
   script-level waits such as `wait 5` do not slow the suite down.
+- Direct `GameSession` tests do not show the final cleanup prompt unless you
+  construct the session with `cleanup_prompt_enabled=True`; queue a final menu
+  click if you enable it.
 
 ## Common Failure Modes
 

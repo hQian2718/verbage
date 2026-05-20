@@ -132,6 +132,34 @@ label done(channel="Room"):
                 [event["kind"] for event in io.events if event["kind"].startswith("menu")],
             )
 
+    async def test_normal_completion_can_delete_game_channels(self):
+        script = '''
+label setup:
+    jump done
+
+label done(channel="Room"):
+    "Done."
+'''
+        with TemporaryDirectory() as raw_dir:
+            root = Path(raw_dir)
+            game_dir = root / "game"
+            output_dir = root / "out"
+            game_dir.mkdir()
+            (game_dir / "main.script").write_text(script)
+
+            game = load_game(game_dir)
+            io = LocalDialogIO(output_dir)
+            io.queue_menu("Room", 0, "Alice", "alice")
+            session = GameSession(io, game, cleanup_prompt_enabled=True)
+            session.min_delay = 0
+            session.max_delay = 0
+
+            await session.run_root()
+
+            event_kinds = [event["kind"] for event in io.events]
+            self.assertIn("delete", event_kinds)
+            self.assertFalse((output_dir / "room.jsonl").exists())
+
     async def test_real_game_end_to_end_opens_secret_door(self):
         with TemporaryDirectory() as raw_dir:
             output_dir = Path("./output") / "out"
@@ -161,7 +189,7 @@ label done(channel="Room"):
             self.assertTrue(session.done)
             self.assertFalse(session.variables["door_locked"])
             self.assertEqual(session.variables["code_entered"], "dead beef")
-            self.assertEqual(session.variables["enter_count"], 2)
+            self.assertEqual(session.variables["enter_count"], session.variables["num_players"])
             self.assertEqual(session.variables["kitchen_investigator"], "Carol")
             self.assertFalse(session.variables["secret_door_locked"])
 

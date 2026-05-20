@@ -20,7 +20,7 @@ define j = Character(
 # false, 0, or "".
 
 default door_locked = True
-default num_players = 2
+default num_players = 1
 default enter_count = 0
 default correct_code = "dead beef"
 default code_entered = ""

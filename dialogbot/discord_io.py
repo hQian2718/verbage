@@ -31,6 +31,7 @@ class DiscordDialogIO:
         self.channel_topic = os.getenv("GAME_CHANNEL_TOPIC", "Dialog bot game channel")
         self.channel_cache: dict[str, discord.TextChannel] = {}
         self.webhook_cache: dict[tuple[int, str], discord.Webhook] = {}
+        self.webhook_fallback_channels: set[int] = set()
 
     async def ensure_channel(self, channel_name: str) -> None:
         await self.get_or_create_channel(channel_name)
@@ -50,8 +51,17 @@ class DiscordDialogIO:
 
     async def send_character_dialogue(self, channel_name: str, character: Character, text: str) -> None:
         channel = await self.get_or_create_channel(channel_name)
-        webhook = await self.get_character_webhook(channel, character)
-        await webhook.send(text, username=character.name, wait=True)
+        try:
+            webhook = await self.get_character_webhook(channel, character)
+        except discord.Forbidden:
+            await self.warn_webhook_fallback(channel)
+            await channel.send(f"**{character.name}:** {text}")
+            return
+        try:
+            await webhook.send(text, username=character.name, wait=True)
+        except discord.Forbidden:
+            await self.warn_webhook_fallback(channel)
+            await channel.send(f"**{character.name}:** {text}")
 
     async def wait_for_input(self, channel_name: str) -> str:
         channel = await self.get_or_create_channel(channel_name)
@@ -90,6 +100,39 @@ class DiscordDialogIO:
     async def clear_channel(self, channel_name: str) -> None:
         channel = await self.get_or_create_channel(channel_name)
         await channel.purge(limit=1000)
+
+    async def delete_channels(self, channel_names: list[str]) -> None:
+        for channel_name in channel_names:
+            channel = self.find_existing_channel(channel_name)
+            if not channel:
+                continue
+            try:
+                await channel.delete(reason="Dialog game cleanup requested")
+            except discord.NotFound:
+                pass
+            except discord.Forbidden:
+                LOGGER.exception("Missing permissions to delete #%s (%s)", channel.name, channel.id)
+                await channel.send("I do not have permission to delete this game channel.")
+            else:
+                self.channel_cache.pop(channel_name, None)
+                self.webhook_fallback_channels.discard(channel.id)
+                for cache_key in list(self.webhook_cache):
+                    if cache_key[0] == channel.id:
+                        del self.webhook_cache[cache_key]
+
+    def find_existing_channel(self, display_name: str) -> discord.TextChannel | None:
+        cached = self.channel_cache.get(display_name)
+        if cached:
+            return cached
+        category = discord.utils.get(self.guild.categories, name=self.category_name)
+        if not category:
+            return None
+        topic = f"{self.channel_topic}: {display_name}"
+        for channel in category.text_channels:
+            if channel.topic == topic:
+                self.channel_cache[display_name] = channel
+                return channel
+        return None
 
     async def get_or_create_channel(self, display_name: str) -> discord.TextChannel:
         cached = self.channel_cache.get(display_name)
@@ -130,6 +173,20 @@ class DiscordDialogIO:
         webhook = await channel.create_webhook(name=name, avatar=avatar, reason="Dialog bot character")
         self.webhook_cache[cache_key] = webhook
         return webhook
+
+    async def warn_webhook_fallback(self, channel: discord.TextChannel) -> None:
+        if channel.id in self.webhook_fallback_channels:
+            return
+        self.webhook_fallback_channels.add(channel.id)
+        LOGGER.warning(
+            "Missing Manage Webhooks in #%s (%s); falling back to bot-authored character messages.",
+            channel.name,
+            channel.id,
+        )
+        await channel.send(
+            "I cannot use character webhooks in this channel because Discord returned "
+            "`Missing Permissions` for webhook access. Falling back to regular bot messages."
+        )
 
 
 class SingleButtonView(discord.ui.View):

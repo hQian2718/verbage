@@ -80,14 +80,20 @@ class EventContext:
 
 
 class GameManager:
-    def __init__(self) -> None:
+    def __init__(self, cleanup_prompt_enabled: bool = True) -> None:
+        self.cleanup_prompt_enabled = cleanup_prompt_enabled
         self.sessions: dict[int, GameSession] = {}
 
     async def start(self, scope_id: int, io: DialogIO, game: ScriptGame) -> str:
         existing = self.sessions.get(scope_id)
         if existing and not existing.done:
             return "A game is already running in this server. Use `/stop` first."
-        session = GameSession(io, game, scope_name=str(scope_id))
+        session = GameSession(
+            io,
+            game,
+            scope_name=str(scope_id),
+            cleanup_prompt_enabled=self.cleanup_prompt_enabled,
+        )
         self.sessions[scope_id] = session
         await session.start()
         return "Starting the game."
@@ -119,6 +125,8 @@ class GameSession:
     active_lock: asyncio.Lock = field(default_factory=asyncio.Lock)
     active_channels: dict[str, str] = field(default_factory=dict)
     known_channels: set[str] = field(default_factory=set)
+    last_channel_name: str | None = None
+    cleanup_prompt_enabled: bool = False
     tasks: set[asyncio.Task[Any]] = field(default_factory=set)
     root_task: asyncio.Task[Any] | None = None
     timeout_task: asyncio.Task[Any] | None = None
@@ -156,6 +164,8 @@ class GameSession:
         context = EventContext(self, secrets.token_hex(4), "main")
         try:
             await self.run_label(context, self.game.labels[("main", "setup")])
+            if self.cleanup_prompt_enabled:
+                await self.offer_channel_cleanup()
         except asyncio.CancelledError:
             raise
         except Exception as exc:
@@ -206,6 +216,7 @@ class GameSession:
         self.known_channels.add(channel_name)
         await self.io.ensure_channel(channel_name)
         context.channel_name = channel_name
+        self.last_channel_name = channel_name
 
     async def release_channel(self, context: EventContext) -> None:
         if not context.channel_name:
@@ -346,3 +357,25 @@ class GameSession:
                     raise
         finally:
             await self.io.close_menu(handle)
+
+    async def offer_channel_cleanup(self) -> None:
+        if not self.known_channels:
+            return
+        prompt_channel = self.last_channel_name or sorted(self.known_channels)[0]
+        await self.io.send_notice(prompt_channel, "Game complete. Delete all game channels?")
+        handle = await self.io.open_menu(
+            prompt_channel,
+            [
+                MenuChoice(0, "Delete game channels"),
+                MenuChoice(1, "Keep channels"),
+            ],
+        )
+        try:
+            index, _action = await self.io.wait_for_menu_click(handle)
+        finally:
+            await self.io.close_menu(handle)
+
+        if index == 0:
+            await self.io.delete_channels(sorted(self.known_channels))
+        else:
+            await self.io.send_notice(prompt_channel, "Keeping game channels.")
