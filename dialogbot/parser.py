@@ -16,6 +16,8 @@ from .model import (
     ExprStatement,
     If,
     IfBranch,
+    InputBlock,
+    InputCase,
     Jump,
     Label,
     LabelRef,
@@ -194,10 +196,12 @@ class Parser:
 
     def parse_statement(self, line: Line) -> Statement:
         text = line.text
-        if text == "menu:":
+        if text == "menu:" or text.startswith("menu timeout "):
             return self.parse_menu(line)
         if text.startswith("button "):
             return self.parse_button(line)
+        if text.startswith("input "):
+            return self.parse_input(line)
         if text.startswith("if "):
             return self.parse_if(line)
         if text.startswith("jump "):
@@ -233,12 +237,18 @@ class Parser:
         return Dialogue(line.source, None, f"[invalid statement at {line.source.format()}]")
 
     def parse_menu(self, line: Line) -> Menu:
+        timeout_seconds = parse_optional_timeout(line.text, "menu", line, self)
         self.index += 1
         options: list[MenuOption] = []
+        timeout_body: list[Statement] | None = None
         while self.index < len(self.lines):
             option_line = self.lines[self.index]
             if option_line.indent <= line.indent:
                 break
+            if option_line.text == "timeout:":
+                self.index += 1
+                timeout_body = self.parse_block(option_line.indent)
+                continue
             match = re.match(r'"((?:\\"|[^"])*)"(?:\s+if\s+(.+))?:\s*$', option_line.text)
             if not match:
                 self.error(option_line, "invalid menu option")
@@ -248,7 +258,7 @@ class Parser:
             self.index += 1
             body = self.parse_block(option_line.indent)
             options.append(MenuOption(text.replace('\\"', '"'), condition, body, option_line.source))
-        return Menu(line.source, options)
+        return Menu(line.source, options, timeout_seconds, timeout_body)
 
     def parse_button(self, line: Line) -> Button:
         match = re.match(r'button\s+"((?:\\"|[^"])*)"\s*:?\s*$', line.text)
@@ -259,6 +269,46 @@ class Parser:
         self.index += 1
         body = self.parse_block(line.indent)
         return Button(line.source, match.group(1).replace('\\"', '"'), body)
+
+    def parse_input(self, line: Line) -> InputBlock:
+        match = re.match(
+            r'input\s+(".*")\s+into\s+([A-Za-z_]\w*)(?:\s+timeout\s+(.+?))?\s*:\s*$',
+            line.text,
+        )
+        if not match:
+            self.error(line, 'invalid input block; expected: input "Prompt" into variable:')
+            self.index += 1
+            return InputBlock(line.source, "", "", None, [])
+        prompt_raw, variable, timeout_raw = match.groups()
+        prompt = parse_string_literal(prompt_raw, line, self)
+        timeout_seconds = parse_duration(timeout_raw, line, self) if timeout_raw else None
+        self.index += 1
+        cases: list[InputCase] = []
+        while self.index < len(self.lines):
+            case_line = self.lines[self.index]
+            if case_line.indent <= line.indent:
+                break
+            match = re.match(r"case\s+(.+):\s*$", case_line.text)
+            if not match:
+                self.error(case_line, "invalid input case")
+                self.index += 1
+                continue
+            raw_case = match.group(1).strip()
+            if raw_case == "_":
+                kind = "default"
+                expression = None
+            elif raw_case == "timeout":
+                kind = "timeout"
+                expression = None
+            elif raw_case.startswith("contains "):
+                kind = "contains"
+                expression = raw_case[len("contains ") :].strip()
+            else:
+                kind = "equals"
+                expression = raw_case
+            self.index += 1
+            cases.append(InputCase(kind, expression, self.parse_block(case_line.indent), case_line.source))
+        return InputBlock(line.source, prompt, variable, timeout_seconds, cases)
 
     def parse_if(self, line: Line) -> If:
         branches: list[IfBranch] = []
@@ -355,6 +405,30 @@ def parse_time_limit(text: str, line: Line, parser: Parser) -> float:
     return amount
 
 
+def parse_duration(raw: str, line: Line, parser: Parser) -> float:
+    match = re.match(r"(\d+(?:\.\d+)?)(?:\s+(seconds?|minutes?|hours?))?$", raw.strip())
+    if not match:
+        parser.error(line, "invalid duration")
+        return 0
+    amount = float(match.group(1))
+    unit = match.group(2) or "seconds"
+    if unit.startswith("minute"):
+        return amount * 60
+    if unit.startswith("hour"):
+        return amount * 3600
+    return amount
+
+
+def parse_optional_timeout(text: str, keyword: str, line: Line, parser: Parser) -> float | None:
+    if text == f"{keyword}:":
+        return None
+    match = re.match(rf"{keyword}\s+timeout\s+(.+):\s*$", text)
+    if not match:
+        parser.error(line, f"invalid {keyword} timeout")
+        return None
+    return parse_duration(match.group(1), line, parser)
+
+
 def parse_channel_link(line: Line, parser: Parser) -> ChannelLink:
     match = re.match(r'channel\s+link\s+(".*")\s+to\s+(".*")$', line.text)
     if not match:
@@ -403,12 +477,27 @@ def validate_statements(game: ScriptGame, label: Label, statements: list[Stateme
                 for target in statement.targets:
                     resolve_label(game, label.namespace, target)
             elif isinstance(statement, Menu):
+                if statement.timeout_body and statement.timeout_seconds is None:
+                    errors.append(f"{statement.source.format()}: menu timeout branch requires menu timeout")
                 for option in statement.options:
                     if option.condition:
                         validate_condition(option.condition, game.defaults)
                     errors.extend(validate_statements(game, label, option.body))
+                if statement.timeout_body:
+                    errors.extend(validate_statements(game, label, statement.timeout_body))
             elif isinstance(statement, Button):
                 errors.extend(validate_statements(game, label, statement.body))
+            elif isinstance(statement, InputBlock):
+                if statement.variable not in game.defaults:
+                    errors.append(f"{statement.source.format()}: unknown input variable {statement.variable}")
+                for case in statement.cases:
+                    if case.kind == "timeout" and statement.timeout_seconds is None:
+                        errors.append(f"{case.source.format()}: input timeout case requires input timeout")
+                    if case.kind == "contains" and case.expression:
+                        validate_condition(f"{statement.variable} contains {case.expression}", game.defaults)
+                    elif case.kind == "equals" and case.expression:
+                        validate_condition(case.expression, game.defaults)
+                    errors.extend(validate_statements(game, label, case.body))
             elif isinstance(statement, If):
                 for branch in statement.branches:
                     if branch.condition:

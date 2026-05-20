@@ -145,6 +145,81 @@ label done(channel="Room"):
                 [event["kind"] for event in io.events if event["kind"].startswith("menu")],
             )
 
+    async def test_timed_menu_runs_timeout_branch(self):
+        script = '''
+default timed_out = False
+
+label setup:
+    jump start
+
+label start(channel="Room"):
+    menu timeout 0.001:
+        "Choose":
+            jump done
+
+        timeout:
+            $ timed_out = True
+            jump done
+
+label done(channel="Room"):
+    "Done."
+'''
+        with TemporaryDirectory() as raw_dir:
+            root = Path(raw_dir)
+            game_dir = root / "game"
+            output_dir = root / "out"
+            game_dir.mkdir()
+            (game_dir / "main.script").write_text(script)
+
+            game = load_game(game_dir)
+            io = LocalDialogIO(output_dir)
+            session = GameSession(io, game)
+            session.min_delay = 0
+            session.max_delay = 0
+
+            await session.run_root()
+
+            self.assertTrue(session.variables["timed_out"])
+
+    async def test_input_block_cases_store_and_match_text(self):
+        script = '''
+default answer = ""
+default matched = False
+
+label setup:
+    jump start
+
+label start(channel="Room"):
+    input "What do you inspect?" into answer:
+        case contains "portrait" or "winnie":
+            $ matched = True
+            jump done
+
+        case _:
+            jump done
+
+label done(channel="Room"):
+    "Done."
+'''
+        with TemporaryDirectory() as raw_dir:
+            root = Path(raw_dir)
+            game_dir = root / "game"
+            output_dir = root / "out"
+            game_dir.mkdir()
+            (game_dir / "main.script").write_text(script)
+
+            game = load_game(game_dir)
+            io = LocalDialogIO(output_dir)
+            io.queue_input("Room", "the portrait")
+            session = GameSession(io, game)
+            session.min_delay = 0
+            session.max_delay = 0
+
+            await session.run_root()
+
+            self.assertEqual(session.variables["answer"], "the portrait")
+            self.assertTrue(session.variables["matched"])
+
     async def test_normal_completion_can_delete_game_channels(self):
         script = '''
 label setup:

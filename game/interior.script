@@ -1,5 +1,6 @@
 default kitchen_investigator = ""
 default secret_door_locked = True
+default restroom_action = ""
 
 label enter_restaurant(channel="Great Hall"):
     n "There is a large fish tank in the middle of the restaurant."
@@ -35,11 +36,20 @@ label kitchen(channel="Kitchen"):
     n "THERE IS NOTHING ELSE TO DO IN THE KITCHEN."
     channel link "Return to Great Hall" to "Great Hall"
 
+    j "Hey, do you need help?"
+    menu timeout 30:
+        "Can you help me find the restroom?":
+            j "Sure, I often see guests come here by mistake."
+            n "Jia li walks with you and shows you the way."
+            channel link "Follow her" to "Restroom"
+        timeout:
+            j "Nevermind."
+
 label restroom(channel="Restroom"):
     n "The restroom is fancy and clean."
     button "Look around"
 
-    n "The Winnie the Pooh portrait hanging above one of the stalls catches your eye."
+    n "The Winnie the Pooh *portrait* hanging above one of the stalls catches your eye."
 
     n "Its faded smile is unnerving."
 
@@ -62,13 +72,17 @@ label restroom_2(channel="Restroom"):
     n "What will you do?"
 
     # case insensitive
-    if input() contains "portrait" or "winnie" or "investigate":
-        n "You find a secret button!"
-        button "press it":
-            $ secret_door_locked = False
-            n "You press the button."
-            n "Nothing happens in your vicinity."
-            n "YOU MAY RETURN."
+    input "What will you do?" into restroom_action:
+        case contains "portrait" or "winnie" or "investigate":
+            n "You find a secret button!"
+            button "press it":
+                $ secret_door_locked = False
+                n "You press the button."
+                n "Nothing happens in your vicinity."
+                n "YOU MAY RETURN."
+
+        case _:
+            n "You don't find anything else."
     
 label banquet_hall_2(channel="Banquet Hall"):
     n "You go to the banquet hall."

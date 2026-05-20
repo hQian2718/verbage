@@ -33,9 +33,9 @@ label setup:
     jump start
 
 label start(channel="Entrance"):
-    n "You are outside a big restaurant."
+    n "You are outside a **big restaurant**."
     # The system will wait between messages to accomodate human reading pace
-    n "Two stone lion statues sit in front of the wooden doors."
+    n "Two *stone lion statues* sit in front of the wooden doors."
     n "You have a mission: a suspect may be hiding in this restaurant."
     n "However, the door is locked. There is a key pad beside the door."
     run extra
@@ -58,8 +58,12 @@ label door(channel="Entrance"):
             
         "Enter a Code" if door_locked:
             # Take the next incoming user message as the code
-            $ code_entered = input("Enter the code on the keypad.")
-            if code_entered == correct_code:
-                n "The lock snaps open."
-                $ door_locked = False
-            jump door
+            input "Enter the code on the keypad." into code_entered:
+                case correct_code:
+                    n "The lock snaps open."
+                    $ door_locked = False
+                    jump door
+
+                case _:
+                    n "The keypad flashes red."
+                    jump door

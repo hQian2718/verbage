@@ -124,8 +124,7 @@ menu:
         jump door
 
     "Enter a Code" if door_locked:
-        $ code_entered = input("Enter the code.")
-        jump door
+        jump enter_code
 ```
 
 - Each option has visible text and an optional `if <cond>:` clause.
@@ -134,6 +133,41 @@ menu:
 - **Click semantics:** anyone in the channel may click. Each user may click at most once
   per menu showing. The menu stays live for other users until execution leaves the menu
   block via a `jump` in a chosen body. A click runs the chosen body inline.
+- `menu timeout <seconds>:` closes after the duration. If a `timeout:` branch
+  exists, it runs; otherwise execution continues after the menu block.
+
+```
+menu timeout 30:
+    "Ask Jia li for directions":
+        j "Sure, follow me."
+        channel link "Follow her" to "Restroom"
+
+    timeout:
+        j "Nevermind."
+```
+
+## Input block
+
+```
+input "Enter the code on the keypad." into code_entered:
+    case correct_code:
+        n "The lock snaps open."
+        $ door_locked = False
+        jump door
+
+    case _:
+        n "The keypad flashes red."
+        jump door
+```
+
+- Posts the prompt, waits for the next non-bot message in the active channel,
+  stores it in the declared variable, then evaluates cases in order.
+- `case value:` compares the captured text to a literal or variable expression.
+- `case contains "x" or "y":` applies the case-insensitive `contains` operator
+  to the captured text.
+- `case _:` is the default fallback.
+- `input "Prompt" into variable timeout <seconds>:` times out. If `case
+  timeout:` exists, it runs; otherwise execution continues after the input block.
 
 ## Button
 
@@ -195,7 +229,6 @@ channel link "Return to Great Hall" to "Great Hall"
 ```
 $ enter_count += 1
 $ door_locked = False
-$ code_entered = input("Enter the code.")
 $ kitchen_investigator = username()
 ```
 

@@ -97,12 +97,30 @@ class MenuOption:
 @dataclass
 class Menu(Statement):
     options: list[MenuOption]
+    timeout_seconds: float | None = None
+    timeout_body: list[Statement] | None = None
 
 
 @dataclass
 class Button(Statement):
     text: str
     body: list[Statement]
+
+
+@dataclass
+class InputCase:
+    kind: str
+    expression: str | None
+    body: list[Statement]
+    source: SourceRef
+
+
+@dataclass
+class InputBlock(Statement):
+    prompt: str
+    variable: str
+    timeout_seconds: float | None
+    cases: list[InputCase]
 
 
 @dataclass

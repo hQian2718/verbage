@@ -17,6 +17,7 @@ from .model import (
     Dialogue,
     ExprStatement,
     If,
+    InputBlock,
     Jump,
     Label,
     LabelRef,
@@ -243,6 +244,8 @@ class GameSession:
             await self.show_menu(context, statement)
         elif isinstance(statement, Button):
             await self.show_button(context, statement)
+        elif isinstance(statement, InputBlock):
+            await self.show_input(context, statement)
         elif isinstance(statement, If):
             for branch in statement.branches:
                 if branch.condition is None or await eval_condition(branch.condition, context):
@@ -357,7 +360,18 @@ class GameSession:
         handle = await self.io.open_menu(context.channel_name, visible)
         try:
             while True:
-                index, action = await self.io.wait_for_menu_click(handle)
+                try:
+                    if statement.timeout_seconds is None:
+                        index, action = await self.io.wait_for_menu_click(handle)
+                    else:
+                        index, action = await asyncio.wait_for(
+                            self.io.wait_for_menu_click(handle),
+                            timeout=statement.timeout_seconds * self.wait_scale,
+                        )
+                except asyncio.TimeoutError:
+                    if statement.timeout_body:
+                        await self.execute_block(context, statement.timeout_body)
+                    return
                 context.last_click_user = action
                 option = statement.options[index]
                 try:
@@ -368,6 +382,42 @@ class GameSession:
                     raise
         finally:
             await self.io.close_menu(handle)
+
+    async def show_input(self, context: EventContext, statement: InputBlock) -> None:
+        if not context.channel_name:
+            raise RuntimeErrorWithContext("input block used before entering a channel")
+        try:
+            if statement.timeout_seconds is None:
+                value = await self.io.wait_for_input(context.channel_name, statement.prompt)
+            else:
+                value = await asyncio.wait_for(
+                    self.io.wait_for_input(context.channel_name, statement.prompt),
+                    timeout=statement.timeout_seconds * self.wait_scale,
+                )
+        except asyncio.TimeoutError:
+            timeout_case = next((case for case in statement.cases if case.kind == "timeout"), None)
+            if timeout_case:
+                await self.execute_block(context, timeout_case.body)
+            return
+
+        await context.set_var(statement.variable, value)
+        default_case = None
+        for case in statement.cases:
+            if case.kind == "timeout":
+                continue
+            if case.kind == "default":
+                default_case = case
+                continue
+            if case.kind == "contains" and case.expression:
+                if await eval_condition(f"{statement.variable} contains {case.expression}", context):
+                    await self.execute_block(context, case.body)
+                    return
+            elif case.kind == "equals" and case.expression:
+                if value == await eval_expr_text(case.expression, context):
+                    await self.execute_block(context, case.body)
+                    return
+        if default_case:
+            await self.execute_block(context, default_case.body)
 
     async def offer_channel_cleanup(self) -> None:
         if not self.known_channels:

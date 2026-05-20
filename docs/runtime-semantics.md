@@ -86,6 +86,10 @@ When a user clicks an option:
 The Discord adapter enforces one click per user per menu view. Local tests can
 queue menu clicks with `LocalDialogIO.queue_menu()`.
 
+Timed menus use `menu timeout <seconds>:`. On timeout, the runtime closes the
+menu and runs the optional `timeout:` branch. If no timeout branch exists,
+execution continues after the menu block.
+
 ## Buttons
 
 A button is a gate. The runtime waits for the first click, records that user for
@@ -104,6 +108,25 @@ click event, so this statement never blocks script execution.
 
 The runtime asks the IO adapter to create or resolve the target channel before
 posting the link.
+
+## Input Blocks
+
+Input blocks consolidate text prompts, storage, and branching:
+
+```text
+input "Enter the code on the keypad." into code_entered:
+    case correct_code:
+        jump unlocked
+
+    case _:
+        jump locked
+```
+
+The captured message is assigned to the declared variable before cases run.
+`case value:` performs equality against a literal or variable expression.
+`case contains "x" or "y":` applies the script `contains` operator to the
+captured text. `case timeout:` is available only when the block uses
+`timeout <seconds>`.
 
 ## Variables
 
