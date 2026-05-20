@@ -84,7 +84,7 @@ The adapter is responsible for translating runtime requests:
 - `ensure_channel("Kitchen")`
 - `send_character_dialogue("Kitchen", character, text)`
 - `wait_for_button("Kitchen", "Look around")`
-- `wait_for_input("Restroom")`
+- `wait_for_input("Restroom", "What do you inspect?")`
 - `clear_channel("Banquet Hall")`
 
 This split makes the script language testable without a live bot and keeps

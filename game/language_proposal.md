@@ -124,7 +124,7 @@ menu:
         jump door
 
     "Enter a Code" if door_locked:
-        $ code_entered = input()
+        $ code_entered = input("Enter the code.")
         jump door
 ```
 
@@ -184,7 +184,7 @@ clear channel "Restroom"
 ```
 $ enter_count += 1
 $ door_locked = False
-$ code_entered = input()
+$ code_entered = input("Enter the code.")
 $ kitchen_investigator = username()
 ```
 
@@ -199,7 +199,7 @@ $ kitchen_investigator = username()
   - Parentheses
   - Literals: int, str (double-quoted), `True`, `False`
   - Variable references (must be declared via `default`)
-  - Built-ins: `input()`, `username()`
+  - Built-ins: `input()`, `input("prompt")`, `username()`
 - Anything outside this allowlist (arbitrary calls, attribute access, imports,
   comprehensions, etc.) is rejected at load time.
 
@@ -207,7 +207,7 @@ $ kitchen_investigator = username()
 
 | Name | Blocks? | Returns | Notes |
 |---|---|---|---|
-| `input()` | yes | `str` | Captures the next non-bot message in the active channel. May appear inside a condition (e.g. `if input() contains "x":`); MVP allows one `input()` per expression. |
+| `input(prompt)` | yes | `str` | Posts the optional string prompt, then captures the next non-bot message in the active channel. May appear inside a condition (e.g. `if input("What do you inspect?") contains "x":`); MVP allows one `input()` per expression. |
 | `username()` | no | `str` | Identifier of the user who last clicked a `button`/`menu` option in this event. Empty string if none. |
 
 The built-in set is intentionally minimal and may grow.

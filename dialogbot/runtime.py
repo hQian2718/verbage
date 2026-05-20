@@ -65,13 +65,13 @@ class EventContext:
                 raise RuntimeErrorWithContext(f"unknown variable {name}")
             self.session.variables[name] = value
 
-    async def wait_for_input(self) -> str:
+    async def wait_for_input(self, prompt: str | None = None) -> str:
         if not self.channel_name:
             raise RuntimeErrorWithContext("input() used before entering a channel")
 
         # input() consumes the next human-authored message in the current event
         # channel. The IO adapter decides where that message comes from.
-        return await self.session.io.wait_for_input(self.channel_name)
+        return await self.session.io.wait_for_input(self.channel_name, prompt)
 
     def username(self) -> str:
         if not self.last_click_user:
@@ -138,6 +138,7 @@ class GameSession:
         self.min_delay = float(os.getenv("DIALOG_MIN_DELAY", "1.5"))
         self.max_delay = float(os.getenv("DIALOG_MAX_DELAY", "6"))
         self.wait_scale = float(os.getenv("DIALOG_WAIT_SCALE", "1"))
+        self.cleanup_prompt_timeout = float(os.getenv("DIALOG_CLEANUP_TIMEOUT", "120"))
 
     async def start(self) -> None:
         self.root_task = asyncio.create_task(self.run_root(), name=f"dialog-game-{self.scope_name}")
@@ -371,7 +372,12 @@ class GameSession:
             ],
         )
         try:
-            index, _action = await self.io.wait_for_menu_click(handle)
+            index, _action = await asyncio.wait_for(
+                self.io.wait_for_menu_click(handle),
+                timeout=self.cleanup_prompt_timeout,
+            )
+        except asyncio.TimeoutError:
+            index = 1
         finally:
             await self.io.close_menu(handle)
 

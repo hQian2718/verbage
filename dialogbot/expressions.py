@@ -13,7 +13,7 @@ class ExpressionError(Exception):
 class EvalContext(Protocol):
     async def get_var(self, name: str) -> Any: ...
     async def set_var(self, name: str, value: Any) -> None: ...
-    async def wait_for_input(self) -> str: ...
+    async def wait_for_input(self, prompt: str | None = None) -> str: ...
     def username(self) -> str: ...
 
 
@@ -144,8 +144,15 @@ def validate_ast(node: ast.AST, defaults: dict[str, Any]) -> None:
     if isinstance(node, ast.Call):
         if not isinstance(node.func, ast.Name) or node.func.id not in {"input", "username"}:
             raise ExpressionError("unsupported function call")
-        if node.args or node.keywords:
-            raise ExpressionError("built-ins do not take arguments")
+        if node.keywords:
+            raise ExpressionError("built-ins do not take keyword arguments")
+        if node.func.id == "username" and node.args:
+            raise ExpressionError("username() does not take arguments")
+        if node.func.id == "input":
+            if len(node.args) > 1:
+                raise ExpressionError("input() accepts at most one prompt argument")
+            if node.args and not (isinstance(node.args[0], ast.Constant) and isinstance(node.args[0].value, str)):
+                raise ExpressionError("input() prompt must be a string literal")
         return
     raise ExpressionError(f"unsupported expression: {type(node).__name__}")
 
@@ -188,7 +195,8 @@ async def eval_node(node: ast.AST, context: EvalContext) -> Any:
         return True
     if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
         if node.func.id == "input":
-            return await context.wait_for_input()
+            prompt = node.args[0].value if node.args else None
+            return await context.wait_for_input(prompt)
         if node.func.id == "username":
             return context.username()
     raise ExpressionError(f"unsupported expression: {type(node).__name__}")

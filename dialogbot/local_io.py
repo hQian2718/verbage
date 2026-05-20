@@ -60,7 +60,9 @@ class LocalDialogIO:
     async def send_character_dialogue(self, channel_name: str, character: Character, text: str) -> None:
         await self.record(channel_name, "dialogue", text, speaker=character.name, character=character.key)
 
-    async def wait_for_input(self, channel_name: str) -> str:
+    async def wait_for_input(self, channel_name: str, prompt: str | None = None) -> str:
+        if prompt:
+            await self.record(channel_name, "input_prompt", prompt)
         await self.record(channel_name, "input_wait", "")
         text = await self.input_queues.setdefault(channel_name, asyncio.Queue()).get()
         await self.record(channel_name, "input", text)

@@ -58,7 +58,7 @@ label door(channel="Entrance"):
             
         "Enter a Code" if door_locked:
             # Take the next incoming user message as the code
-            $ code_entered = input()
+            $ code_entered = input("Enter the code on the keypad.")
             if code_entered == correct_code:
                 n "The lock snaps open."
                 $ door_locked = False

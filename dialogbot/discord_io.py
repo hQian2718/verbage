@@ -53,18 +53,26 @@ class DiscordDialogIO:
         channel = await self.get_or_create_channel(channel_name)
         try:
             webhook = await self.get_character_webhook(channel, character)
-        except discord.Forbidden:
+        except (discord.Forbidden, discord.NotFound):
             await self.warn_webhook_fallback(channel)
             await channel.send(f"**{character.name}:** {text}")
             return
         try:
             await webhook.send(text, username=character.name, wait=True)
+        except discord.NotFound:
+            self.webhook_cache.pop((channel.id, character.key), None)
+            await channel.send(f"**{character.name}:** {text}")
         except discord.Forbidden:
             await self.warn_webhook_fallback(channel)
             await channel.send(f"**{character.name}:** {text}")
+        except discord.HTTPException:
+            LOGGER.exception("Webhook send failed in #%s (%s)", channel.name, channel.id)
+            await channel.send(f"**{character.name}:** {text}")
 
-    async def wait_for_input(self, channel_name: str) -> str:
+    async def wait_for_input(self, channel_name: str, prompt: str | None = None) -> str:
         channel = await self.get_or_create_channel(channel_name)
+        if prompt:
+            await channel.send(prompt)
 
         def check(message: discord.Message) -> bool:
             return message.channel.id == channel.id and not message.author.bot
@@ -99,7 +107,14 @@ class DiscordDialogIO:
 
     async def clear_channel(self, channel_name: str) -> None:
         channel = await self.get_or_create_channel(channel_name)
-        await channel.purge(limit=1000)
+        try:
+            await channel.purge(limit=1000)
+        except discord.Forbidden:
+            LOGGER.exception("Missing permissions to clear #%s (%s)", channel.name, channel.id)
+            await channel.send("I do not have permission to clear this game channel.")
+        except discord.HTTPException:
+            LOGGER.exception("Failed to clear #%s (%s)", channel.name, channel.id)
+            await channel.send("I could not clear this game channel.")
 
     async def delete_channels(self, channel_names: list[str]) -> None:
         for channel_name in channel_names:

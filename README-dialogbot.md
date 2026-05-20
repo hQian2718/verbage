@@ -54,6 +54,7 @@ Game state is in memory for the MVP.
 When a game finishes normally, the bot posts a final cleanup menu in the last
 story channel. Choosing **Delete game channels** deletes the channels used by
 that game session; choosing **Keep channels** leaves the transcript in place.
+If nobody answers, the cleanup prompt times out and keeps the channels.
 
 ## Local Testing Surface
 

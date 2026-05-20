@@ -37,6 +37,9 @@ Text input:
 io.queue_input("Room", "inspect the portrait")
 ```
 
+If the script uses `input("prompt")`, the local adapter records an
+`input_prompt` event before `input_wait`.
+
 Button click:
 
 ```python
@@ -76,7 +79,7 @@ label setup:
     jump start
 
 label start(channel="Room"):
-    $ answer = input()
+    $ answer = input("What do you inspect?")
     if answer contains "portrait":
         "Found it."
 """)
@@ -107,6 +110,8 @@ label start(channel="Room"):
 - Direct `GameSession` tests do not show the final cleanup prompt unless you
   construct the session with `cleanup_prompt_enabled=True`; queue a final menu
   click if you enable it.
+- Set `session.cleanup_prompt_timeout` low in tests when you want to verify that
+  the cleanup prompt defaults to keeping channels.
 
 ## Common Failure Modes
 

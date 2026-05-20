@@ -9,6 +9,9 @@ label enter_restaurant(channel="Great Hall"):
     run (kitchen, restroom, banquet_hall)
     # this launches the three events simultaneously, and only proceeds when all three are finished.
 
+    # wait for the players to return to this channel
+    wait 15
+
     n "The players have visited all three rooms!"
     clear channel "Restroom"
     clear channel "Kitchen"

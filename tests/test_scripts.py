@@ -20,7 +20,7 @@ class FakeContext:
     async def set_var(self, name, value):
         self.variables[name] = value
 
-    async def wait_for_input(self):
+    async def wait_for_input(self, prompt=None):
         return self.text
 
     def username(self):
@@ -39,6 +39,10 @@ class ScriptTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(await eval_condition(expression, FakeContext("look at portrait")))
         self.assertTrue(await eval_condition(expression, FakeContext("WINNIE")))
         self.assertFalse(await eval_condition(expression, FakeContext("wash hands")))
+
+        prompted = 'input("What do you inspect?") contains "portrait"'
+        validate_condition(prompted, {})
+        self.assertTrue(await eval_condition(prompted, FakeContext("portrait")))
 
     async def test_contains_sugar_with_variable(self):
         expression = 'answer contains "dead" or "beef"'
@@ -65,7 +69,7 @@ label start(channel="Room"):
     button "Look":
         $ clicker = username()
     n "$clicker looked."
-    $ answer = input()
+    $ answer = input("What do you inspect?")
     if answer contains "portrait" or "winnie":
         "Found it."
 '''
@@ -89,6 +93,10 @@ label start(channel="Room"):
             self.assertEqual(session.variables["clicker"], "Alice")
             self.assertEqual(session.variables["answer"], "inspect the portrait")
             self.assertTrue((output_dir / "room.jsonl").exists())
+            self.assertIn(
+                ("input_prompt", "What do you inspect?"),
+                [(event["kind"], event["text"]) for event in io.events],
+            )
             self.assertIn(
                 ("narration", "Found it."),
                 [(event["kind"], event["text"]) for event in io.events],
@@ -160,10 +168,45 @@ label done(channel="Room"):
             self.assertIn("delete", event_kinds)
             self.assertFalse((output_dir / "room.jsonl").exists())
 
+    async def test_completion_cleanup_prompt_times_out_to_keep_channels(self):
+        script = '''
+label setup:
+    jump done
+
+label done(channel="Room"):
+    "Done."
+'''
+        with TemporaryDirectory() as raw_dir:
+            root = Path(raw_dir)
+            game_dir = root / "game"
+            output_dir = root / "out"
+            game_dir.mkdir()
+            (game_dir / "main.script").write_text(script)
+
+            game = load_game(game_dir)
+            io = LocalDialogIO(output_dir)
+            session = GameSession(io, game, cleanup_prompt_enabled=True)
+            session.min_delay = 0
+            session.max_delay = 0
+            session.cleanup_prompt_timeout = 0.001
+
+            await session.run_root()
+
+            event_kinds = [event["kind"] for event in io.events]
+            self.assertNotIn("delete", event_kinds)
+            self.assertIn(
+                ("notice", "Keeping game channels."),
+                [(event["kind"], event["text"]) for event in io.events],
+            )
+            self.assertTrue((output_dir / "room.jsonl").exists())
+
     async def test_real_game_end_to_end_opens_secret_door(self):
         with TemporaryDirectory() as raw_dir:
-            output_dir = Path("./output") / "out"
-            game = load_game("game")
+            root = Path(raw_dir)
+            # use real script in ./game/
+            game_dir = Path("game")
+            output_dir = root / "out"
+            game = load_game(game_dir)
             io = LocalDialogIO(output_dir)
 
             io.queue_menu("Entrance", 1, "Alice", "alice")

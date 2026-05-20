@@ -152,7 +152,14 @@ The runtime evaluates the left side once, then compares it case-insensitively
 against each right-side alternative.
 
 The MVP permits at most one `input()` call per expression. That keeps blocking
-message waits predictable.
+message waits predictable. `input()` also accepts one optional string prompt:
+
+```text
+$ code_entered = input("Enter the code on the keypad.")
+```
+
+The Discord adapter posts the prompt in the active channel before waiting for
+the user's next message.
 
 ## Timeouts And Errors
 
