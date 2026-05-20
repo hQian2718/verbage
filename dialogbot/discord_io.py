@@ -28,10 +28,17 @@ class DiscordDialogIO:
         self.bot = bot
         self.guild = guild
         self.category_name = os.getenv("GAME_CATEGORY_NAME", "Dialog Game")
-        self.channel_topic = os.getenv("GAME_CHANNEL_TOPIC", "Dialog bot game channel")
+        self.channel_topic_base = os.getenv("GAME_CHANNEL_TOPIC", "Dialog bot game channel")
+        self.session_id: str | None = None
         self.channel_cache: dict[str, discord.TextChannel] = {}
         self.webhook_cache: dict[tuple[int, str], discord.Webhook] = {}
         self.webhook_fallback_channels: set[int] = set()
+
+    async def prepare_session(self, session_id: str) -> None:
+        self.session_id = session_id
+        self.channel_cache.clear()
+        self.webhook_cache.clear()
+        self.webhook_fallback_channels.clear()
 
     async def ensure_channel(self, channel_name: str) -> None:
         await self.get_or_create_channel(channel_name)
@@ -149,7 +156,7 @@ class DiscordDialogIO:
         category = discord.utils.get(self.guild.categories, name=self.category_name)
         if not category:
             return None
-        topic = f"{self.channel_topic}: {display_name}"
+        topic = self.channel_topic(display_name)
         for channel in category.text_channels:
             if channel.topic == topic:
                 self.channel_cache[display_name] = channel
@@ -165,9 +172,10 @@ class DiscordDialogIO:
         if not category:
             category = await self.guild.create_category(self.category_name)
 
-        topic = f"{self.channel_topic}: {display_name}"
+        topic = self.channel_topic(display_name)
         # Topic is the stable lookup key, so renaming a channel in Discord does
-        # not make the bot create a duplicate on the next run.
+        # not break this session. The session id keeps replay transcripts from
+        # being reused when players choose to keep old game channels.
         for channel in category.text_channels:
             if channel.topic == topic:
                 self.channel_cache[display_name] = channel
@@ -180,6 +188,11 @@ class DiscordDialogIO:
         )
         self.channel_cache[display_name] = channel
         return channel
+
+    def channel_topic(self, display_name: str) -> str:
+        if self.session_id:
+            return f"{self.channel_topic_base} [{self.session_id}]: {display_name}"
+        return f"{self.channel_topic_base}: {display_name}"
 
     async def get_character_webhook(self, channel: discord.TextChannel, character: Character) -> discord.Webhook:
         cache_key = (channel.id, character.key)

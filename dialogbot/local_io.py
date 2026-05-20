@@ -31,6 +31,10 @@ class LocalDialogIO:
         self.input_queues: dict[str, asyncio.Queue[str]] = {}
         self.button_queues: dict[tuple[str, str], asyncio.Queue[UserAction]] = {}
         self.menu_queues: dict[str, asyncio.Queue[tuple[int, UserAction]]] = {}
+        self.session_id: str | None = None
+
+    async def prepare_session(self, session_id: str) -> None:
+        self.session_id = session_id
 
     def queue_input(self, channel_name: str, text: str) -> None:
         self.input_queues.setdefault(channel_name, asyncio.Queue()).put_nowait(text)

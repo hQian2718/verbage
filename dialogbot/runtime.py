@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 import os
 import re
@@ -90,10 +91,14 @@ class GameManager:
         existing = self.sessions.get(scope_id)
         if existing and not existing.done:
             return "A game is already running in this server. Use `/stop` first."
+        if existing:
+            await existing.cancel_cleanup_prompt()
+        session_id = secrets.token_hex(4)
+        await io.prepare_session(session_id)
         session = GameSession(
             io,
             game,
-            scope_name=str(scope_id),
+            scope_name=f"{scope_id}:{session_id}",
             cleanup_prompt_enabled=self.cleanup_prompt_enabled,
         )
         self.sessions[scope_id] = session
@@ -104,8 +109,8 @@ class GameManager:
         session = self.sessions.get(scope_id)
         if not session or session.done:
             return "No game is running in this server."
-        await session.stop(reason)
-        return "Stopped the game."
+        await session.stop(reason, offer_cleanup=self.cleanup_prompt_enabled)
+        return "Stopped the game. Cleanup prompt posted."
 
     def status(self, scope_id: int | None) -> str:
         if not scope_id or scope_id not in self.sessions or self.sessions[scope_id].done:
@@ -132,6 +137,7 @@ class GameSession:
     tasks: set[asyncio.Task[Any]] = field(default_factory=set)
     root_task: asyncio.Task[Any] | None = None
     timeout_task: asyncio.Task[Any] | None = None
+    cleanup_task: asyncio.Task[Any] | None = None
     done: bool = False
 
     def __post_init__(self) -> None:
@@ -147,7 +153,7 @@ class GameSession:
         self.tasks.add(self.root_task)
         self.root_task.add_done_callback(self.tasks.discard)
 
-    async def stop(self, reason: str) -> None:
+    async def stop(self, reason: str, offer_cleanup: bool = False) -> None:
         self.done = True
         current = asyncio.current_task()
         if self.timeout_task:
@@ -162,13 +168,19 @@ class GameSession:
                 await self.io.send_notice(channel_name, reason)
             except Exception:
                 LOGGER.exception("Failed to post stop notice in %s", channel_name)
+        if offer_cleanup:
+            self.start_cleanup_prompt()
 
     async def run_root(self) -> None:
         context = EventContext(self, secrets.token_hex(4), "main")
         try:
             await self.run_label(context, self.game.labels[("main", "setup")])
+            # The playable story is over as soon as the root label returns.
+            # Cleanup is intentionally backgrounded so /start can create the
+            # next session while the old delete/keep prompt is still visible.
+            self.done = True
             if self.cleanup_prompt_enabled:
-                await self.offer_channel_cleanup()
+                self.start_cleanup_prompt()
         except asyncio.CancelledError:
             raise
         except Exception as exc:
@@ -177,6 +189,33 @@ class GameSession:
             self.done = True
             if self.timeout_task:
                 self.timeout_task.cancel()
+
+    async def cancel_cleanup_prompt(self) -> None:
+        if not self.cleanup_task or self.cleanup_task.done():
+            return
+        self.cleanup_task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await self.cleanup_task
+
+    def start_cleanup_prompt(self) -> asyncio.Task[Any] | None:
+        if not self.cleanup_prompt_enabled or not self.known_channels:
+            return None
+        if self.cleanup_task and not self.cleanup_task.done():
+            return self.cleanup_task
+        self.cleanup_task = asyncio.create_task(
+            self.offer_channel_cleanup(),
+            name=f"dialog-cleanup-{self.scope_name}",
+        )
+        self.cleanup_task.add_done_callback(self.log_cleanup_exception)
+        return self.cleanup_task
+
+    def log_cleanup_exception(self, task: asyncio.Task[Any]) -> None:
+        if task.cancelled():
+            return
+        try:
+            task.result()
+        except Exception:
+            LOGGER.exception("Cleanup prompt failed in scope %s", self.scope_name)
 
     async def fatal(self, context: EventContext, exc: Exception) -> None:
         error_id = secrets.token_hex(3)

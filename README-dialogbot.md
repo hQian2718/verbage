@@ -51,10 +51,16 @@ Commands are guild-scoped when `GUILD_ID` is set:
 
 Game state is in memory for the MVP.
 
-When a game finishes normally, the bot posts a final cleanup menu in the last
-story channel. Choosing **Delete game channels** deletes the channels used by
-that game session; choosing **Keep channels** leaves the transcript in place.
-If nobody answers, the cleanup prompt times out and keeps the channels.
+When a game finishes normally or is stopped with `/stop`, the bot posts a final
+cleanup menu in the last story channel. Choosing **Delete game channels**
+deletes the channels used by that game session; choosing **Keep channels**
+leaves the transcript in place. If nobody answers, the cleanup prompt times out
+and keeps the channels. Starting a new game cancels any unresolved cleanup
+prompt from the previous session.
+
+Each accepted `/start` gets a fresh run id. Discord channel topics include that
+run id, so replaying a game creates a new set of channels instead of reusing
+kept transcript channels from an earlier run.
 
 ## Local Testing Surface
 

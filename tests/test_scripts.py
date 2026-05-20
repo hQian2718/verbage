@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 import unittest
 from tempfile import TemporaryDirectory
 from pathlib import Path
@@ -6,7 +7,12 @@ from pathlib import Path
 from dialogbot.expressions import eval_condition, validate_condition
 from dialogbot.local_io import LocalDialogIO
 from dialogbot.parser import load_game
-from dialogbot.runtime import GameSession
+from dialogbot.runtime import GameManager, GameSession
+
+try:
+    from dialogbot.discord_io import DiscordDialogIO
+except ModuleNotFoundError:
+    DiscordDialogIO = None
 
 
 class FakeContext:
@@ -49,6 +55,18 @@ class ScriptTests(unittest.IsolatedAsyncioTestCase):
         validate_condition(expression, {"answer": ""})
         self.assertTrue(await eval_condition(expression, FakeContext("dead beef")))
         self.assertFalse(await eval_condition(expression, FakeContext("nothing")))
+
+    async def test_discord_channel_topics_are_session_scoped(self):
+        if DiscordDialogIO is None:
+            self.skipTest("discord.py is not installed")
+        io = DiscordDialogIO(object(), object())
+        io.channel_topic_base = "Dialog"
+
+        self.assertEqual("Dialog: Room", io.channel_topic("Room"))
+        await io.prepare_session("run-one")
+        self.assertEqual("Dialog [run-one]: Room", io.channel_topic("Room"))
+        await io.prepare_session("run-two")
+        self.assertEqual("Dialog [run-two]: Room", io.channel_topic("Room"))
 
     async def test_runtime_can_run_against_local_io(self):
         script = '''
@@ -243,6 +261,8 @@ label done(channel="Room"):
             session.max_delay = 0
 
             await session.run_root()
+            self.assertIsNotNone(session.cleanup_task)
+            await session.cleanup_task
 
             event_kinds = [event["kind"] for event in io.events]
             self.assertIn("delete", event_kinds)
@@ -271,6 +291,8 @@ label done(channel="Room"):
             session.cleanup_prompt_timeout = 0.001
 
             await session.run_root()
+            self.assertIsNotNone(session.cleanup_task)
+            await session.cleanup_task
 
             event_kinds = [event["kind"] for event in io.events]
             self.assertNotIn("delete", event_kinds)
@@ -279,6 +301,151 @@ label done(channel="Room"):
                 [(event["kind"], event["text"]) for event in io.events],
             )
             self.assertTrue((output_dir / "room.jsonl").exists())
+
+    async def test_manager_stop_posts_cleanup_prompt(self):
+        script = '''
+label setup:
+    jump start
+
+label start(channel="Room"):
+    button "Wait"
+'''
+        with TemporaryDirectory() as raw_dir:
+            root = Path(raw_dir)
+            game_dir = root / "game"
+            output_dir = root / "out"
+            game_dir.mkdir()
+            (game_dir / "main.script").write_text(script)
+
+            game = load_game(game_dir)
+            io = LocalDialogIO(output_dir)
+            manager = GameManager(cleanup_prompt_enabled=True)
+            await manager.start(123, io, game)
+            session = manager.sessions[123]
+
+            for _ in range(100):
+                if "Room" in session.known_channels:
+                    break
+                await asyncio.sleep(0.001)
+            self.assertIn("Room", session.known_channels)
+
+            io.queue_menu("Room", 0, "Alice", "alice")
+            result = await manager.stop(123, "Stopped by test.")
+            if session.root_task:
+                with contextlib.suppress(asyncio.CancelledError):
+                    await session.root_task
+            self.assertIsNotNone(session.cleanup_task)
+            await session.cleanup_task
+
+            self.assertEqual("Stopped the game. Cleanup prompt posted.", result)
+            event_kinds = [event["kind"] for event in io.events]
+            self.assertIn("button", event_kinds)
+            self.assertIn("menu", event_kinds)
+            self.assertIn("delete", event_kinds)
+            self.assertFalse((output_dir / "room.jsonl").exists())
+
+    async def test_manager_can_start_after_stop_with_pending_cleanup(self):
+        script = '''
+label setup:
+    jump start
+
+label start(channel="Room"):
+    button "Wait"
+'''
+        with TemporaryDirectory() as raw_dir:
+            root = Path(raw_dir)
+            game_dir = root / "game"
+            first_output_dir = root / "out-first"
+            second_output_dir = root / "out-second"
+            game_dir.mkdir()
+            (game_dir / "main.script").write_text(script)
+
+            game = load_game(game_dir)
+            manager = GameManager(cleanup_prompt_enabled=True)
+            first_io = LocalDialogIO(first_output_dir)
+            await manager.start(123, first_io, game)
+            first_session = manager.sessions[123]
+            self.assertIsNotNone(first_io.session_id)
+
+            for _ in range(100):
+                if "Room" in first_session.known_channels:
+                    break
+                await asyncio.sleep(0.001)
+            self.assertIn("Room", first_session.known_channels)
+
+            await manager.stop(123, "Stopped by test.")
+            if first_session.root_task:
+                with contextlib.suppress(asyncio.CancelledError):
+                    await first_session.root_task
+            self.assertIsNotNone(first_session.cleanup_task)
+            self.assertFalse(first_session.cleanup_task.done())
+
+            second_io = LocalDialogIO(second_output_dir)
+            result = await manager.start(123, second_io, game)
+            second_session = manager.sessions[123]
+
+            self.assertEqual("Starting the game.", result)
+            self.assertIsNotNone(second_io.session_id)
+            self.assertNotEqual(first_io.session_id, second_io.session_id)
+            self.assertIsNot(first_session, second_session)
+            self.assertTrue(first_session.cleanup_task.done())
+            self.assertTrue(first_session.cleanup_task.cancelled())
+
+            await second_session.stop("Test cleanup.", offer_cleanup=False)
+            if second_session.root_task:
+                with contextlib.suppress(asyncio.CancelledError):
+                    await second_session.root_task
+
+    async def test_manager_can_start_after_completion_with_pending_cleanup(self):
+        script = '''
+default finished = False
+
+label setup:
+    jump done
+
+label done(channel="Room"):
+    $ finished = True
+'''
+        with TemporaryDirectory() as raw_dir:
+            root = Path(raw_dir)
+            game_dir = root / "game"
+            first_output_dir = root / "out-first"
+            second_output_dir = root / "out-second"
+            game_dir.mkdir()
+            (game_dir / "main.script").write_text(script)
+
+            game = load_game(game_dir)
+            manager = GameManager(cleanup_prompt_enabled=True)
+            first_io = LocalDialogIO(first_output_dir)
+            await manager.start(123, first_io, game)
+            first_session = manager.sessions[123]
+            self.assertIsNotNone(first_io.session_id)
+            first_session.min_delay = 0
+            first_session.max_delay = 0
+
+            for _ in range(100):
+                if first_session.done and first_session.cleanup_task:
+                    break
+                await asyncio.sleep(0.001)
+            self.assertTrue(first_session.done)
+            self.assertIsNotNone(first_session.cleanup_task)
+            self.assertFalse(first_session.cleanup_task.done())
+
+            second_io = LocalDialogIO(second_output_dir)
+            result = await manager.start(123, second_io, game)
+            second_session = manager.sessions[123]
+
+            self.assertEqual("Starting the game.", result)
+            self.assertIsNotNone(second_io.session_id)
+            self.assertNotEqual(first_io.session_id, second_io.session_id)
+            self.assertIsNot(first_session, second_session)
+            self.assertTrue(first_session.cleanup_task.done())
+            self.assertTrue(first_session.cleanup_task.cancelled())
+
+            if second_session.root_task:
+                await second_session.root_task
+            self.assertIsNotNone(second_session.cleanup_task)
+            await second_session.cancel_cleanup_prompt()
 
     async def test_real_game_end_to_end_opens_secret_door(self):
         with TemporaryDirectory() as raw_dir:
