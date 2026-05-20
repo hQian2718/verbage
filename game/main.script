@@ -1,0 +1,65 @@
+# this is a comment
+
+# there will be one bot appearance for each character.
+# The display name will be like this.
+# look for narrator.jpg / narrator.png in images/
+
+define n = Character(
+    "Narrator",
+    color="#0d5c16",
+    image="narrator",
+)
+
+define j = Character(
+    "Jia li",
+    color="#b16399",
+    image="jiali"
+)
+# game variables can be bool, int, or string.
+# a variable which has not been assigned a value is
+# false, 0, or "".
+
+default door_locked = True
+default num_players = 2
+default enter_count = 0
+default correct_code = "dead beef"
+default code_entered = ""
+default game_won = False
+
+# A special label which is the default entry point.
+label setup:
+    time limit 10 minutes
+    # The game will end in 10 minutes as the players time out.
+    jump start
+
+label start(channel="Entrance"):
+    n "You are outside a big restaurant."
+    # The system will wait between messages to accomodate human reading pace
+    n "Two stone lion statues sit in front of the wooden doors."
+    n "You have a mission: a suspect may be hiding in this restaurant."
+    n "However, the door is locked. There is a key pad beside the door."
+    run extra
+        
+    jump door
+
+label extra(channel="Extra"):
+    n "You can switch channels in the middle of a label."
+
+label door(channel="Entrance"):
+    n "You stand in front of the door."
+    menu:
+        "Enter the Restaurant" if not door_locked:
+            # Update a game variable
+            $ enter_count += 1
+            if enter_count == num_players:
+                n "You all enter the restaurant."
+                jump interior.enter_restaurant
+            jump door
+            
+        "Enter a Code" if door_locked:
+            # Take the next incoming user message as the code
+            $ code_entered = input()
+            if code_entered == correct_code:
+                n "The lock snaps open."
+                $ door_locked = False
+            jump door

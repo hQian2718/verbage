@@ -1,0 +1,85 @@
+default kitchen_investigator = ""
+default secret_door_locked = True
+
+label enter_restaurant(channel="Great Hall"):
+    n "There is a large fish tank in the middle of the restaurant."
+    j "Hello, party of $(num_players)?"
+    j "We do have a 10 minute wait; if you need to use the restroom, it's that way by the window."
+
+    run (kitchen, restroom, banquet_hall)
+    # this launches the three events simultaneously, and only proceeds when all three are finished.
+
+    n "The players have visited all three rooms!"
+    clear channel "Restroom"
+    clear channel "Kitchen"
+    clear channel "Banquet Hall"
+    run (restroom_2, banquet_hall_2)
+
+    n "End of the game."
+
+label kitchen(channel="Kitchen"):
+    n "The kitchen is bustling."
+    
+    # like a menu but only with one option
+    # don't proceed until a user has clicked the button
+    # username() refers to an identifier of the user 
+    # who clicked this button
+
+    button "Look around":
+        $ kitchen_investigator = username()
+
+    n "The cook looks at $kitchen_investigator suspiciously."
+    n "THERE IS NOTHING ELSE TO DO IN THE KITCHEN."
+
+label restroom(channel="Restroom"):
+    n "The restroom is fancy and clean."
+    button "Look around"
+
+    n "The Winnie the Pooh portrait hanging above one of the stalls catches your eye."
+
+    n "Its faded smile is unnerving."
+
+    n "THERE IS NOTHING ELSE TO DO HERE. YOU SHOULD RETURN."
+
+label banquet_hall(channel="Banquet Hall"):
+    n "The hall is dingy."
+    button "Look around"
+
+    n "You spot a locked door to what looks like a cleaning closet."
+    n "Above the door, a portrait of Winnie the Pooh looks at you."
+    n "YOU SHOULD RETURN, THERE IS NOTHING TO BE DONE HERE."
+
+label restroom_2(channel="Restroom"):
+    n "The restroom is fancy and clean."
+    n "The stalls are still empty, looks like no one's here."
+    n "The Winnie the Pooh portrait looks back at you with glazed eyes."
+    n "What will you do?"
+
+    # case insensitive
+    if input() contains "portrait" or "winnie" or "investigate":
+        n "You find a secret button!"
+        button "press it":
+            $ secret_door_locked = False
+            n "You press the button."
+            n "Nothing happens in your vicinity."
+            n "YOU MAY RETURN."
+    
+label banquet_hall_2(channel="Banquet Hall"):
+    n "You go to the banquet hall."
+    n "The other door is still there."
+    jump secret_door_menu
+
+label secret_door_menu(channel="Banquet Hall"):
+    if not secret_door_locked:
+        "You hear a bolt retracting. The door springs open!"
+        "YOU WIN!"
+    else:   
+        button "Inspect the door":
+                n "Above the door is a picture of Winnie the Pooh."
+                n "You wait by the door."
+                n "How does this door open?"
+                # wait five seconds
+                wait 5
+                jump secret_door_menu
+
+        
