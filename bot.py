@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import logging
 import os
 
@@ -119,6 +120,25 @@ async def command_error(interaction: discord.Interaction, error: app_commands.Ap
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Run the Discord dialog bot.")
+    parser.add_argument(
+        "--dialog-min-delay",
+        "--min-delay",
+        type=float,
+        help="Override DIALOG_MIN_DELAY for this bot process.",
+    )
+    parser.add_argument(
+        "--dialog-max-delay",
+        "--max-delay",
+        type=float,
+        help="Override DIALOG_MAX_DELAY for this bot process.",
+    )
+    args = parser.parse_args()
+    if args.dialog_min_delay is not None:
+        os.environ["DIALOG_MIN_DELAY"] = str(args.dialog_min_delay)
+    if args.dialog_max_delay is not None:
+        os.environ["DIALOG_MAX_DELAY"] = str(args.dialog_max_delay)
+
     token = os.getenv("DISCORD_TOKEN")
     if not token:
         raise SystemExit("DISCORD_TOKEN is required")

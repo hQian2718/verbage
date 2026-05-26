@@ -4,7 +4,9 @@ import asyncio
 import logging
 import os
 import re
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
+from typing import TypeVar
 
 import discord
 from discord.ext import commands
@@ -14,6 +16,7 @@ from .model import Character
 
 
 LOGGER = logging.getLogger(__name__)
+T = TypeVar("T")
 
 
 @dataclass
@@ -33,6 +36,8 @@ class DiscordDialogIO:
         self.channel_cache: dict[str, discord.TextChannel] = {}
         self.webhook_cache: dict[tuple[int, str], discord.Webhook] = {}
         self.webhook_fallback_channels: set[int] = set()
+        self.retry_attempts = max(1, int(os.getenv("DISCORD_RETRY_ATTEMPTS", "4")))
+        self.retry_base_delay = float(os.getenv("DISCORD_RETRY_BASE_DELAY", "1"))
 
     async def prepare_session(self, session_id: str) -> None:
         self.session_id = session_id
@@ -50,11 +55,11 @@ class DiscordDialogIO:
 
     async def send_notice(self, channel_name: str, text: str) -> None:
         channel = await self.get_or_create_channel(channel_name)
-        await channel.send(text)
+        await self.retry_discord_call(f"send notice to #{channel.name}", lambda: channel.send(text))
 
     async def send_narration(self, channel_name: str, text: str) -> None:
         channel = await self.get_or_create_channel(channel_name)
-        await channel.send(f"*{text}*")
+        await self.retry_discord_call(f"send narration to #{channel.name}", lambda: channel.send(f"*{text}*"))
 
     async def send_character_dialogue(self, channel_name: str, character: Character, text: str) -> None:
         channel = await self.get_or_create_channel(channel_name)
@@ -62,31 +67,34 @@ class DiscordDialogIO:
             webhook = await self.get_character_webhook(channel, character)
         except (discord.Forbidden, discord.NotFound):
             await self.warn_webhook_fallback(channel)
-            await channel.send(f"**{character.name}:** {text}")
+            await self.send_character_fallback(channel, character, text)
             return
         try:
-            await webhook.send(text, username=character.name, wait=True)
+            await self.retry_discord_call(
+                f"send webhook dialogue to #{channel.name}",
+                lambda: webhook.send(text, username=character.name, wait=True),
+            )
         except discord.NotFound:
             self.webhook_cache.pop((channel.id, character.key), None)
-            await channel.send(f"**{character.name}:** {text}")
+            await self.send_character_fallback(channel, character, text)
         except discord.Forbidden:
             await self.warn_webhook_fallback(channel)
-            await channel.send(f"**{character.name}:** {text}")
+            await self.send_character_fallback(channel, character, text)
         except discord.HTTPException:
             LOGGER.exception("Webhook send failed in #%s (%s)", channel.name, channel.id)
-            await channel.send(f"**{character.name}:** {text}")
+            await self.send_character_fallback(channel, character, text)
 
     async def send_channel_link(self, channel_name: str, label: str, target_channel_name: str) -> None:
         channel = await self.get_or_create_channel(channel_name)
         target = await self.get_or_create_channel(target_channel_name)
         view = discord.ui.View()
         view.add_item(discord.ui.Button(label=label, url=target.jump_url))
-        await channel.send(view=view)
+        await self.retry_discord_call(f"send channel link to #{channel.name}", lambda: channel.send(view=view))
 
     async def wait_for_input(self, channel_name: str, prompt: str | None = None) -> str:
         channel = await self.get_or_create_channel(channel_name)
         if prompt:
-            await channel.send(prompt)
+            await self.retry_discord_call(f"send input prompt to #{channel.name}", lambda: channel.send(prompt))
 
         def check(message: discord.Message) -> bool:
             return message.channel.id == channel.id and not message.author.bot
@@ -97,7 +105,7 @@ class DiscordDialogIO:
     async def wait_for_button(self, channel_name: str, label: str) -> UserAction:
         channel = await self.get_or_create_channel(channel_name)
         view = SingleButtonView(label)
-        message = await channel.send(view=view)
+        message = await self.retry_discord_call(f"send button to #{channel.name}", lambda: channel.send(view=view))
         await view.wait()
         await disable_view(message, view)
         if view.user is None:
@@ -107,7 +115,7 @@ class DiscordDialogIO:
     async def open_menu(self, channel_name: str, choices: list[MenuChoice]) -> MenuHandle:
         channel = await self.get_or_create_channel(channel_name)
         view = MenuView(choices)
-        message = await channel.send(view=view)
+        message = await self.retry_discord_call(f"send menu to #{channel.name}", lambda: channel.send(view=view))
         return DiscordMenuHandle(channel_name, message, view)
 
     async def wait_for_menu_click(self, handle: MenuHandle) -> tuple[int, UserAction]:
@@ -125,10 +133,16 @@ class DiscordDialogIO:
             await channel.purge(limit=1000)
         except discord.Forbidden:
             LOGGER.exception("Missing permissions to clear #%s (%s)", channel.name, channel.id)
-            await channel.send("I do not have permission to clear this game channel.")
+            await self.retry_discord_call(
+                f"send clear-channel permission warning to #{channel.name}",
+                lambda: channel.send("I do not have permission to clear this game channel."),
+            )
         except discord.HTTPException:
             LOGGER.exception("Failed to clear #%s (%s)", channel.name, channel.id)
-            await channel.send("I could not clear this game channel.")
+            await self.retry_discord_call(
+                f"send clear-channel failure warning to #{channel.name}",
+                lambda: channel.send("I could not clear this game channel."),
+            )
 
     async def delete_channels(self, channel_names: list[str]) -> None:
         for channel_name in channel_names:
@@ -141,7 +155,10 @@ class DiscordDialogIO:
                 pass
             except discord.Forbidden:
                 LOGGER.exception("Missing permissions to delete #%s (%s)", channel.name, channel.id)
-                await channel.send("I do not have permission to delete this game channel.")
+                await self.retry_discord_call(
+                    f"send delete permission warning to #{channel.name}",
+                    lambda: channel.send("I do not have permission to delete this game channel."),
+                )
             else:
                 self.channel_cache.pop(channel_name, None)
                 self.webhook_fallback_channels.discard(channel.id)
@@ -170,7 +187,10 @@ class DiscordDialogIO:
 
         category = discord.utils.get(self.guild.categories, name=self.category_name)
         if not category:
-            category = await self.guild.create_category(self.category_name)
+            category = await self.retry_discord_call(
+                f"create category {self.category_name!r}",
+                lambda: self.guild.create_category(self.category_name),
+            )
 
         topic = self.channel_topic(display_name)
         # Topic is the stable lookup key, so renaming a channel in Discord does
@@ -181,10 +201,13 @@ class DiscordDialogIO:
                 self.channel_cache[display_name] = channel
                 return channel
 
-        channel = await self.guild.create_text_channel(
-            slugify(display_name),
-            category=category,
-            topic=topic,
+        channel = await self.retry_discord_call(
+            f"create text channel {display_name!r}",
+            lambda: self.guild.create_text_channel(
+                slugify(display_name),
+                category=category,
+                topic=topic,
+            ),
         )
         self.channel_cache[display_name] = channel
         return channel
@@ -218,10 +241,43 @@ class DiscordDialogIO:
             channel.name,
             channel.id,
         )
-        await channel.send(
-            "I cannot use character webhooks in this channel because Discord returned "
-            "`Missing Permissions` for webhook access. Falling back to regular bot messages."
+        await self.retry_discord_call(
+            f"send webhook fallback warning to #{channel.name}",
+            lambda: channel.send(
+                "I cannot use character webhooks in this channel because Discord returned "
+                "`Missing Permissions` for webhook access. Falling back to regular bot messages."
+            ),
         )
+
+    async def send_character_fallback(
+        self,
+        channel: discord.TextChannel,
+        character: Character,
+        text: str,
+    ) -> None:
+        await self.retry_discord_call(
+            f"send fallback dialogue to #{channel.name}",
+            lambda: channel.send(f"**{character.name}:** {text}"),
+        )
+
+    async def retry_discord_call(self, description: str, operation: Callable[[], Awaitable[T]]) -> T:
+        for attempt in range(1, self.retry_attempts + 1):
+            try:
+                return await operation()
+            except discord.HTTPException as exc:
+                if not is_retryable_discord_error(exc) or attempt == self.retry_attempts:
+                    raise
+                delay = self.retry_base_delay * (2 ** (attempt - 1))
+                LOGGER.warning(
+                    "Transient Discord error during %s; retrying in %.1fs (%s/%s): %s",
+                    description,
+                    delay,
+                    attempt,
+                    self.retry_attempts,
+                    exc,
+                )
+                await asyncio.sleep(delay)
+        raise RuntimeError("unreachable retry state")
 
 
 class SingleButtonView(discord.ui.View):
@@ -279,3 +335,8 @@ async def disable_view(message: discord.Message, view: discord.ui.View) -> None:
 def slugify(name: str) -> str:
     slug = re.sub(r"[^a-z0-9-]+", "-", name.lower()).strip("-")
     return slug or "dialog"
+
+
+def is_retryable_discord_error(exc: discord.HTTPException) -> bool:
+    status = getattr(exc, "status", None)
+    return isinstance(exc, discord.DiscordServerError) or (status is not None and 500 <= status < 600)

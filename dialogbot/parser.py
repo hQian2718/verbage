@@ -54,15 +54,19 @@ def load_game(game_dir: str | Path) -> ScriptGame:
     characters: dict[str, Character] = {}
     defaults: dict[str, Any] = {}
     labels: dict[tuple[str, str], Label] = {}
+    paths = sorted(root.glob("*.script"))
 
-    for path in sorted(root.glob("*.script")):
-        parsed = Parser(root, path).parse()
+    for path in paths:
+        parsed = Parser(root, path).parse_characters()
         errors.extend(parsed.errors)
-
         for key, character in parsed.characters.items():
             if key in characters:
                 errors.append(f"{character.key} defined twice, second at {character.image_path or path}")
             characters[key] = character
+
+    for path in paths:
+        parsed = Parser(root, path).parse_content()
+        errors.extend(parsed.errors)
         for key, value in parsed.defaults.items():
             if key in defaults:
                 errors.append(f"default {key} defined twice in {path}")
@@ -120,18 +124,40 @@ class Parser:
 
         return ParsedFile(self.characters, self.defaults, self.labels, self.errors)
 
-    def parse_define(self) -> None:
-        first = self.lines[self.index]
-        collected = [first.text]
-        parens = first.text.count("(") - first.text.count(")")
-        self.index += 1
-        while self.index < len(self.lines) and parens > 0:
+    def parse_characters(self) -> ParsedFile:
+        while self.index < len(self.lines):
             line = self.lines[self.index]
-            collected.append(line.text)
-            parens += line.text.count("(") - line.text.count(")")
-            self.index += 1
+            if line.indent != 0:
+                self.index += 1
+                continue
+            if line.text.startswith("define "):
+                self.parse_define()
+            else:
+                self.index += 1
+        return ParsedFile(self.characters, {}, {}, self.errors)
 
-        raw = "\n".join(collected)
+    def parse_content(self) -> ParsedFile:
+        while self.index < len(self.lines):
+            line = self.lines[self.index]
+            if line.indent != 0:
+                self.error(line, "top-level statement must not be indented")
+                self.index += 1
+                continue
+            text = line.text
+            if text.startswith("define "):
+                self.skip_define()
+            elif text.startswith("default "):
+                self.parse_default(line)
+                self.index += 1
+            elif text.startswith("label "):
+                self.parse_label(line)
+            else:
+                self.error(line, f"unknown top-level statement: {text}")
+                self.index += 1
+        return ParsedFile({}, self.defaults, self.labels, self.errors)
+
+    def parse_define(self) -> None:
+        first, raw = self.collect_define()
         match = re.match(r"define\s+([A-Za-z_]\w*)\s*=\s*Character\s*\((.*)\)\s*$", raw, re.S)
         if not match:
             self.error(first, "invalid Character definition")
@@ -154,6 +180,21 @@ class Parser:
             self.error(first, "Character name, color, and image must be strings")
             return
         self.characters[key] = Character(key, name, color, image, resolve_image(self.game_dir, image))
+
+    def skip_define(self) -> None:
+        self.collect_define()
+
+    def collect_define(self) -> tuple[Line, str]:
+        first = self.lines[self.index]
+        collected = [first.text]
+        parens = first.text.count("(") - first.text.count(")")
+        self.index += 1
+        while self.index < len(self.lines) and parens > 0:
+            line = self.lines[self.index]
+            collected.append(line.text)
+            parens += line.text.count("(") - line.text.count(")")
+            self.index += 1
+        return first, "\n".join(collected)
 
     def parse_default(self, line: Line) -> None:
         match = re.match(r"default\s+([A-Za-z_]\w*)\s*=\s*(.+)$", line.text)

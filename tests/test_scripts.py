@@ -1,5 +1,6 @@
 import asyncio
 import contextlib
+import time
 import unittest
 from tempfile import TemporaryDirectory
 from pathlib import Path
@@ -31,6 +32,11 @@ class FakeContext:
 
     def username(self):
         return "tester"
+
+
+class NoSleepTypingLocalIO(LocalDialogIO):
+    async def typing_pause(self, channel_name: str, seconds: float) -> None:
+        await self.record(channel_name, "typing", f"{seconds:.3f}s")
 
 
 class ScriptTests(unittest.IsolatedAsyncioTestCase):
@@ -152,6 +158,32 @@ label start(channel="Room"):
             self.assertIn("unknown character bad", message)
             self.assertNotIn("unknown character n", message)
 
+    def test_characters_load_before_labels_across_files(self):
+        main_script = '''
+label setup:
+    jump start
+
+label start(channel="Room"):
+    n "Welcome."
+'''
+        character_script = '''
+define n = Character(
+    "Narrator",
+    color="#0d5c16",
+)
+'''
+        with TemporaryDirectory() as raw_dir:
+            root = Path(raw_dir)
+            game_dir = root / "game"
+            game_dir.mkdir()
+            (game_dir / "main.script").write_text(main_script)
+            (game_dir / "zz_characters.script").write_text(character_script)
+
+            game = load_game(game_dir)
+
+            self.assertIn("n", game.characters)
+            self.assertIn(("main", "start"), game.labels)
+
     async def test_runtime_can_run_against_local_io(self):
         script = '''
 define n = Character(
@@ -208,6 +240,74 @@ label start(channel="Room"):
                 ("narration", "Found it."),
                 [(event["kind"], event["text"]) for event in io.events],
             )
+
+    async def test_dialogue_before_jump_waits_after_message(self):
+        script = '''
+default arrived = False
+
+label setup:
+    jump start
+
+label start(channel="Room"):
+    "Read this before jumping."
+    jump done
+
+label done(channel="Room"):
+    $ arrived = True
+'''
+        with TemporaryDirectory() as raw_dir:
+            root = Path(raw_dir)
+            game_dir = root / "game"
+            output_dir = root / "out"
+            game_dir.mkdir()
+            (game_dir / "main.script").write_text(script)
+
+            game = load_game(game_dir)
+            io = NoSleepTypingLocalIO(output_dir)
+            session = GameSession(io, game)
+            session.min_delay = 0.02
+            session.max_delay = 0.02
+
+            started = time.monotonic()
+            await session.run_root()
+            elapsed = time.monotonic() - started
+
+            self.assertTrue(session.variables["arrived"])
+            self.assertGreaterEqual(elapsed, 0.02)
+
+    async def test_each_dialogue_line_gets_own_reading_delay(self):
+        script = '''
+default arrived = False
+
+label setup:
+    jump start
+
+label start(channel="Room"):
+    "short"
+    "a much longer line"
+    $ arrived = True
+'''
+        with TemporaryDirectory() as raw_dir:
+            root = Path(raw_dir)
+            game_dir = root / "game"
+            output_dir = root / "out"
+            game_dir.mkdir()
+            (game_dir / "main.script").write_text(script)
+
+            game = load_game(game_dir)
+            io = NoSleepTypingLocalIO(output_dir)
+            session = GameSession(io, game)
+            session.min_delay = 0
+            session.max_delay = 1
+            session.delay_per_char = 0.001
+            session.typing_delay = 0
+
+            started = time.monotonic()
+            await session.run_root()
+            elapsed = time.monotonic() - started
+
+            self.assertTrue(session.variables["arrived"])
+            self.assertGreaterEqual(elapsed, 0.022)
 
     async def test_menu_clicks_are_adapter_driven(self):
         script = '''

@@ -20,6 +20,16 @@ GAME_CATEGORY_NAME=Dialog Game
 GAME_CHANNEL_TOPIC=Dialog bot game channel
 ```
 
+Useful optional values:
+
+```sh
+DIALOG_MIN_DELAY=1.5
+DIALOG_MAX_DELAY=6
+DIALOG_TYPING_DELAY=0.5
+DISCORD_RETRY_ATTEMPTS=4
+DISCORD_RETRY_BASE_DELAY=1
+```
+
 The bot needs these Discord permissions:
 
 - Send Messages
@@ -42,6 +52,24 @@ channel permission overwrites are not denying `Manage Webhooks`.
 python bot.py
 ```
 
+For fast Discord smoke tests, override reading delays for this process:
+
+```sh
+python bot.py --dialog-min-delay 0 --dialog-max-delay 0
+```
+
+Short aliases are also available:
+
+```sh
+python bot.py --min-delay 0 --max-delay 0
+```
+
+Dialogue pacing is a post-send reading delay. Each line computes its own delay
+from `DIALOG_DELAY_PER_CHAR`, clamped by `DIALOG_MIN_DELAY` and
+`DIALOG_MAX_DELAY`, so jumps/menus/buttons do not advance immediately after a
+line appears. `DIALOG_TYPING_DELAY` only controls the short pre-send typing
+indicator.
+
 Commands are guild-scoped when `GUILD_ID` is set:
 
 - `/start`
@@ -61,6 +89,30 @@ prompt from the previous session.
 Each accepted `/start` gets a fresh run id. Discord channel topics include that
 run id, so replaying a game creates a new set of channels instead of reusing
 kept transcript channels from an earlier run.
+
+Transient Discord 5xx responses are retried for channel/category creation and
+outgoing sends. Permission errors and bad requests are not retried.
+
+## Script Checking
+
+Run the local checker before `/start` when editing scripts:
+
+```sh
+python3 check.py
+python3 check.py game
+```
+
+The checker parses every `*.script` file, prints all parser/validation errors,
+and exits nonzero when the scripts are invalid. The Discord `/start` and
+`/reload` commands also log the full parser error server-side and send a short
+summary back to Discord.
+
+Characters may live in any `*.script` file. The loader first reads every
+`define ... Character(...)` block across the whole game directory, then parses
+defaults and labels, so `main.script` can safely reference characters from a
+separate `characters.script`. Character `image=` is optional; when omitted, it
+defaults to the character key, and missing image files simply mean no webhook
+avatar is used.
 
 ## Local Testing Surface
 

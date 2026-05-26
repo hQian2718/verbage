@@ -55,6 +55,7 @@ class EventContext:
     namespace: str
     channel_name: str | None = None
     last_click_user: UserAction | None = None
+    pending_dialogue_delay: float | None = None
 
     async def get_var(self, name: str) -> Any:
         async with self.session.var_lock:
@@ -145,6 +146,7 @@ class GameSession:
         self.delay_per_char = float(os.getenv("DIALOG_DELAY_PER_CHAR", "0.03"))
         self.min_delay = float(os.getenv("DIALOG_MIN_DELAY", "1.5"))
         self.max_delay = float(os.getenv("DIALOG_MAX_DELAY", "6"))
+        self.typing_delay = float(os.getenv("DIALOG_TYPING_DELAY", "0.5"))
         self.wait_scale = float(os.getenv("DIALOG_WAIT_SCALE", "1"))
         self.cleanup_prompt_timeout = float(os.getenv("DIALOG_CLEANUP_TIMEOUT", "120"))
 
@@ -234,6 +236,7 @@ class GameSession:
             await self.bind_channel(context, label.channel)
             try:
                 await self.execute_block(context, label.body)
+                await self.flush_pending_dialogue_delay(context)
                 await self.release_channel(context)
                 return
             except JumpSignal as jump:
@@ -270,7 +273,21 @@ class GameSession:
 
     async def execute_block(self, context: EventContext, statements: list[Statement]) -> None:
         for statement in statements:
+            await self.apply_pending_dialogue_delay(context, statement)
             await self.execute_statement(context, statement)
+
+    async def apply_pending_dialogue_delay(self, context: EventContext, next_statement: Statement) -> None:
+        if context.pending_dialogue_delay is None:
+            return
+        await self.flush_pending_dialogue_delay(context)
+
+    async def flush_pending_dialogue_delay(self, context: EventContext) -> None:
+        if context.pending_dialogue_delay is None:
+            return
+        delay = context.pending_dialogue_delay
+        context.pending_dialogue_delay = None
+        if delay:
+            await asyncio.sleep(delay)
 
     async def execute_statement(self, context: EventContext, statement: Statement) -> None:
         if isinstance(statement, Dialogue):
@@ -343,12 +360,14 @@ class GameSession:
             raise RuntimeErrorWithContext("dialogue emitted before entering a channel")
         text = await self.interpolate(statement.text, context)
         delay = min(self.max_delay, max(self.min_delay, len(text) * self.delay_per_char))
-        await self.io.typing_pause(context.channel_name, delay)
+        await self.io.typing_pause(context.channel_name, self.typing_delay)
         if not statement.character:
             await self.io.send_narration(context.channel_name, text)
+            context.pending_dialogue_delay = delay
             return
         character = self.game.characters[statement.character]
         await self.io.send_character_dialogue(context.channel_name, character, text)
+        context.pending_dialogue_delay = delay
 
     async def send_channel_link(self, context: EventContext, statement: ChannelLink) -> None:
         if not context.channel_name:
@@ -417,6 +436,7 @@ class GameSession:
                     # Menu choices execute inline. If the body does not jump,
                     # the menu remains live for other users to click.
                     await self.execute_block(context, option.body)
+                    await self.flush_pending_dialogue_delay(context)
                 except JumpSignal:
                     raise
         finally:
