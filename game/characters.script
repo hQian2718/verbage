@@ -28,7 +28,7 @@ define zl = Character(
 # 鲁达
 define ld = Character(
     "Lu Da",
-    color="#8f00a8#
+    color="#8f00a8"
 )
 # 刘敏
 define min = Character(

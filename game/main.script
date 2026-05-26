@@ -2,15 +2,15 @@ default num_players = 0
 default ready_count = 0
 
 label setup:
+    time limit 15 minutes
     run show_num_player_promot
-    time limit 10 minutes
     jump start
 
 label show_num_player_promot(channel="Settings"):
     n "This game is designed for 2 to 3 players."
     n "You can be in the same room or on a voice call."
     n "If you are checking it out by yourself, know that it will be almost impossible to succeed, as the game assumes there are multiple players who listen to different conversations and piece together clues."
-    run get_num_players
+    jump get_num_players
 
 label get_num_players(channel="Settings"):
     input "Please tell me the number of players. Just the arabic number please." into num_players:
@@ -21,7 +21,7 @@ label get_num_players(channel="Settings"):
         case "3":
             $ num_players = 3
         case _:
-            jump get_num_players
+            jump get_num_players 
         
 label start(channel="Botanical Gardens"):
     m "So I'll say it again:"
