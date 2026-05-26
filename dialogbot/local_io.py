@@ -4,7 +4,9 @@ import asyncio
 import json
 import re
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
+from time import monotonic
 from typing import Any
 
 from .io import MenuChoice, MenuHandle, UserAction
@@ -24,9 +26,10 @@ class LocalDialogIO:
     Inputs are supplied by tests through queue_* methods.
     """
 
-    def __init__(self, output_dir: str | Path) -> None:
+    def __init__(self, output_dir: str | Path, message_timestamps: bool = False) -> None:
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
+        self.message_timestamps = message_timestamps
         self.events: list[dict[str, Any]] = []
         self.input_queues: dict[str, asyncio.Queue[str]] = {}
         self.button_queues: dict[tuple[str, str], asyncio.Queue[UserAction]] = {}
@@ -111,6 +114,10 @@ class LocalDialogIO:
 
     async def record(self, channel_name: str, kind: str, text: str, **extra: Any) -> None:
         event = {"channel": channel_name, "kind": kind, "text": text, **extra}
+        if self.message_timestamps and kind in TIMESTAMPED_KINDS:
+            event["sent_at"] = datetime.now().astimezone().isoformat(timespec="milliseconds")
+            event["sent_at_monotonic"] = monotonic()
+            event["text"] = f"{text}\n`sent {event['sent_at']}`" if text else f"`sent {event['sent_at']}`"
         self.events.append(event)
         line = json.dumps(event, sort_keys=True)
         with self.channel_path(channel_name).open("a") as handle:
@@ -123,3 +130,14 @@ class LocalDialogIO:
 def slugify(name: str) -> str:
     slug = re.sub(r"[^a-z0-9-]+", "-", name.lower()).strip("-")
     return slug or "dialog"
+
+
+TIMESTAMPED_KINDS = {
+    "notice",
+    "narration",
+    "dialogue",
+    "channel_link",
+    "input_prompt",
+    "button",
+    "menu",
+}

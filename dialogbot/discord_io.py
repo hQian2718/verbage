@@ -6,6 +6,7 @@ import os
 import re
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
+from datetime import datetime
 from typing import TypeVar
 
 import discord
@@ -38,6 +39,7 @@ class DiscordDialogIO:
         self.webhook_fallback_channels: set[int] = set()
         self.retry_attempts = max(1, int(os.getenv("DISCORD_RETRY_ATTEMPTS", "4")))
         self.retry_base_delay = float(os.getenv("DISCORD_RETRY_BASE_DELAY", "1"))
+        self.message_timestamps_enabled = parse_bool_env("DIALOG_MESSAGE_TIMESTAMPS")
 
     async def prepare_session(self, session_id: str) -> None:
         self.session_id = session_id
@@ -55,11 +57,14 @@ class DiscordDialogIO:
 
     async def send_notice(self, channel_name: str, text: str) -> None:
         channel = await self.get_or_create_channel(channel_name)
-        await self.retry_discord_call(f"send notice to #{channel.name}", lambda: channel.send(text))
+        await self.retry_discord_call(f"send notice to #{channel.name}", lambda: channel.send(self.with_timestamp(text)))
 
     async def send_narration(self, channel_name: str, text: str) -> None:
         channel = await self.get_or_create_channel(channel_name)
-        await self.retry_discord_call(f"send narration to #{channel.name}", lambda: channel.send(f"*{text}*"))
+        await self.retry_discord_call(
+            f"send narration to #{channel.name}",
+            lambda: channel.send(self.with_timestamp(f"*{text}*")),
+        )
 
     async def send_character_dialogue(self, channel_name: str, character: Character, text: str) -> None:
         channel = await self.get_or_create_channel(channel_name)
@@ -72,7 +77,7 @@ class DiscordDialogIO:
         try:
             await self.retry_discord_call(
                 f"send webhook dialogue to #{channel.name}",
-                lambda: webhook.send(text, username=character.name, wait=True),
+                lambda: webhook.send(self.with_timestamp(text), username=character.name, wait=True),
             )
         except discord.NotFound:
             self.webhook_cache.pop((channel.id, character.key), None)
@@ -89,12 +94,18 @@ class DiscordDialogIO:
         target = await self.get_or_create_channel(target_channel_name)
         view = discord.ui.View()
         view.add_item(discord.ui.Button(label=label, url=target.jump_url))
-        await self.retry_discord_call(f"send channel link to #{channel.name}", lambda: channel.send(view=view))
+        await self.retry_discord_call(
+            f"send channel link to #{channel.name}",
+            lambda: channel.send(self.timestamp_only(), view=view),
+        )
 
     async def wait_for_input(self, channel_name: str, prompt: str | None = None) -> str:
         channel = await self.get_or_create_channel(channel_name)
         if prompt:
-            await self.retry_discord_call(f"send input prompt to #{channel.name}", lambda: channel.send(prompt))
+            await self.retry_discord_call(
+                f"send input prompt to #{channel.name}",
+                lambda: channel.send(self.with_timestamp(prompt)),
+            )
 
         def check(message: discord.Message) -> bool:
             return message.channel.id == channel.id and not message.author.bot
@@ -105,7 +116,10 @@ class DiscordDialogIO:
     async def wait_for_button(self, channel_name: str, label: str) -> UserAction:
         channel = await self.get_or_create_channel(channel_name)
         view = SingleButtonView(label)
-        message = await self.retry_discord_call(f"send button to #{channel.name}", lambda: channel.send(view=view))
+        message = await self.retry_discord_call(
+            f"send button to #{channel.name}",
+            lambda: channel.send(self.timestamp_only(), view=view),
+        )
         await view.wait()
         await disable_view(message, view)
         if view.user is None:
@@ -115,7 +129,10 @@ class DiscordDialogIO:
     async def open_menu(self, channel_name: str, choices: list[MenuChoice]) -> MenuHandle:
         channel = await self.get_or_create_channel(channel_name)
         view = MenuView(choices)
-        message = await self.retry_discord_call(f"send menu to #{channel.name}", lambda: channel.send(view=view))
+        message = await self.retry_discord_call(
+            f"send menu to #{channel.name}",
+            lambda: channel.send(self.timestamp_only(), view=view),
+        )
         return DiscordMenuHandle(channel_name, message, view)
 
     async def wait_for_menu_click(self, handle: MenuHandle) -> tuple[int, UserAction]:
@@ -135,13 +152,13 @@ class DiscordDialogIO:
             LOGGER.exception("Missing permissions to clear #%s (%s)", channel.name, channel.id)
             await self.retry_discord_call(
                 f"send clear-channel permission warning to #{channel.name}",
-                lambda: channel.send("I do not have permission to clear this game channel."),
+                lambda: channel.send(self.with_timestamp("I do not have permission to clear this game channel.")),
             )
         except discord.HTTPException:
             LOGGER.exception("Failed to clear #%s (%s)", channel.name, channel.id)
             await self.retry_discord_call(
                 f"send clear-channel failure warning to #{channel.name}",
-                lambda: channel.send("I could not clear this game channel."),
+                lambda: channel.send(self.with_timestamp("I could not clear this game channel.")),
             )
 
     async def delete_channels(self, channel_names: list[str]) -> None:
@@ -157,7 +174,7 @@ class DiscordDialogIO:
                 LOGGER.exception("Missing permissions to delete #%s (%s)", channel.name, channel.id)
                 await self.retry_discord_call(
                     f"send delete permission warning to #{channel.name}",
-                    lambda: channel.send("I do not have permission to delete this game channel."),
+                    lambda: channel.send(self.with_timestamp("I do not have permission to delete this game channel.")),
                 )
             else:
                 self.channel_cache.pop(channel_name, None)
@@ -244,8 +261,10 @@ class DiscordDialogIO:
         await self.retry_discord_call(
             f"send webhook fallback warning to #{channel.name}",
             lambda: channel.send(
-                "I cannot use character webhooks in this channel because Discord returned "
-                "`Missing Permissions` for webhook access. Falling back to regular bot messages."
+                self.with_timestamp(
+                    "I cannot use character webhooks in this channel because Discord returned "
+                    "`Missing Permissions` for webhook access. Falling back to regular bot messages."
+                )
             ),
         )
 
@@ -257,8 +276,22 @@ class DiscordDialogIO:
     ) -> None:
         await self.retry_discord_call(
             f"send fallback dialogue to #{channel.name}",
-            lambda: channel.send(f"**{character.name}:** {text}"),
+            lambda: channel.send(self.with_timestamp(f"**{character.name}:** {text}")),
         )
+
+    def with_timestamp(self, content: str) -> str:
+        if not self.message_timestamps_enabled:
+            return content
+        return f"{content}\n{self.timestamp_line()}"
+
+    def timestamp_only(self) -> str | None:
+        if not self.message_timestamps_enabled:
+            return None
+        return self.timestamp_line()
+
+    def timestamp_line(self) -> str:
+        sent_at = datetime.now().astimezone().isoformat(timespec="milliseconds")
+        return f"`sent {sent_at}`"
 
     async def retry_discord_call(self, description: str, operation: Callable[[], Awaitable[T]]) -> T:
         for attempt in range(1, self.retry_attempts + 1):
@@ -340,3 +373,7 @@ def slugify(name: str) -> str:
 def is_retryable_discord_error(exc: discord.HTTPException) -> bool:
     status = getattr(exc, "status", None)
     return isinstance(exc, discord.DiscordServerError) or (status is not None and 500 <= status < 600)
+
+
+def parse_bool_env(name: str) -> bool:
+    return os.getenv(name, "").lower() in {"1", "true", "yes", "on"}

@@ -133,11 +133,18 @@ if __name__ == "__main__":
         type=float,
         help="Override DIALOG_MAX_DELAY for this bot process.",
     )
+    parser.add_argument(
+        "--message-timestamps",
+        action="store_true",
+        help="Append local send timestamps to Discord messages for timing debugging.",
+    )
     args = parser.parse_args()
     if args.dialog_min_delay is not None:
         os.environ["DIALOG_MIN_DELAY"] = str(args.dialog_min_delay)
     if args.dialog_max_delay is not None:
         os.environ["DIALOG_MAX_DELAY"] = str(args.dialog_max_delay)
+    if args.message_timestamps:
+        os.environ["DIALOG_MESSAGE_TIMESTAMPS"] = "1"
 
     token = os.getenv("DISCORD_TOKEN")
     if not token:

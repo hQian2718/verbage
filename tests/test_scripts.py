@@ -309,6 +309,41 @@ label start(channel="Room"):
             self.assertTrue(session.variables["arrived"])
             self.assertGreaterEqual(elapsed, 0.022)
 
+    async def test_local_timestamps_show_per_line_reading_gaps(self):
+        script = '''
+label setup:
+    jump start
+
+label start(channel="Room"):
+    "12345"
+    "1234567890"
+    "done"
+'''
+        with TemporaryDirectory() as raw_dir:
+            root = Path(raw_dir)
+            game_dir = root / "game"
+            output_dir = root / "out"
+            game_dir.mkdir()
+            (game_dir / "main.script").write_text(script)
+
+            game = load_game(game_dir)
+            io = NoSleepTypingLocalIO(output_dir, message_timestamps=True)
+            session = GameSession(io, game)
+            session.min_delay = 0
+            session.max_delay = 1
+            session.delay_per_char = 0.003
+            session.typing_delay = 0
+
+            await session.run_root()
+
+            narration_events = [event for event in io.events if event["kind"] == "narration"]
+            self.assertEqual(3, len(narration_events))
+            self.assertIn("`sent ", narration_events[0]["text"])
+            first_gap = narration_events[1]["sent_at_monotonic"] - narration_events[0]["sent_at_monotonic"]
+            second_gap = narration_events[2]["sent_at_monotonic"] - narration_events[1]["sent_at_monotonic"]
+            self.assertGreaterEqual(first_gap, 5 * session.delay_per_char)
+            self.assertGreaterEqual(second_gap, 10 * session.delay_per_char)
+
     async def test_menu_clicks_are_adapter_driven(self):
         script = '''
 default picker = ""

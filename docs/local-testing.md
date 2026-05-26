@@ -103,6 +103,9 @@ label start(channel="Room"):
   typing delays.
 - Assert on `session.variables` for state changes.
 - Assert on `io.events` for transcript behavior.
+- Use `LocalDialogIO(out_dir, message_timestamps=True)` when debugging pacing.
+  Timestamped events include `sent_at` and `sent_at_monotonic`, so tests can
+  assert gaps between local sends without parsing wall-clock text.
 - Use `load_game("game")` in smoke tests to ensure the real sample game still
   parses.
 - For end-to-end tests against the real game, set `session.wait_scale = 0` so

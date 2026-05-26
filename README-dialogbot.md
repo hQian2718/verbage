@@ -26,6 +26,7 @@ Useful optional values:
 DIALOG_MIN_DELAY=1.5
 DIALOG_MAX_DELAY=6
 DIALOG_TYPING_DELAY=0.5
+DIALOG_MESSAGE_TIMESTAMPS=0
 DISCORD_RETRY_ATTEMPTS=4
 DISCORD_RETRY_BASE_DELAY=1
 ```
@@ -69,6 +70,17 @@ from `DIALOG_DELAY_PER_CHAR`, clamped by `DIALOG_MIN_DELAY` and
 `DIALOG_MAX_DELAY`, so jumps/menus/buttons do not advance immediately after a
 line appears. `DIALOG_TYPING_DELAY` only controls the short pre-send typing
 indicator.
+
+To debug real Discord timing, append the bot process's local send time to each
+Discord message:
+
+```sh
+python bot.py --message-timestamps
+```
+
+This sets `DIALOG_MESSAGE_TIMESTAMPS=1` for the process. It stamps normal
+messages, webhook character dialogue, prompts, and the otherwise-empty
+button/menu/link messages.
 
 Commands are guild-scoped when `GUILD_ID` is set:
 
