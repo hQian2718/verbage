@@ -6,7 +6,7 @@ from pathlib import Path
 
 from dialogbot.expressions import eval_condition, validate_condition
 from dialogbot.local_io import LocalDialogIO
-from dialogbot.parser import load_game
+from dialogbot.parser import ScriptLoadError, load_game
 from dialogbot.runtime import GameManager, GameSession
 
 try:
@@ -67,6 +67,90 @@ class ScriptTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual("Dialog [run-one]: Room", io.channel_topic("Room"))
         await io.prepare_session("run-two")
         self.assertEqual("Dialog [run-two]: Room", io.channel_topic("Room"))
+
+    def test_character_image_defaults_to_key(self):
+        script = '''
+define n = Character(
+    "Narrator",
+    color="#0d5c16",
+)
+
+label setup:
+    jump start
+
+label start(channel="Room"):
+    n "Welcome."
+'''
+        with TemporaryDirectory() as raw_dir:
+            root = Path(raw_dir)
+            game_dir = root / "game"
+            game_dir.mkdir()
+            (game_dir / "main.script").write_text(script)
+
+            game = load_game(game_dir)
+
+            self.assertEqual("n", game.characters["n"].image)
+            self.assertIsNone(game.characters["n"].image_path)
+
+    def test_invalid_label_error_skips_body_cascade(self):
+        script = '''
+define n = Character(
+    "Narrator",
+    color="#0d5c16",
+)
+
+label setup:
+    jump start
+
+label start(Channel="Room"):
+    n "This body should not produce top-level errors."
+'''
+        with TemporaryDirectory() as raw_dir:
+            root = Path(raw_dir)
+            game_dir = root / "game"
+            game_dir.mkdir()
+            (game_dir / "main.script").write_text(script)
+
+            with self.assertRaises(ScriptLoadError) as raised:
+                load_game(game_dir)
+
+            message = str(raised.exception)
+            self.assertIn("use lowercase channel=", message)
+            self.assertNotIn("top-level statement must not be indented", message)
+            self.assertNotIn("unknown character n", message)
+
+    def test_file_parse_errors_keep_valid_definitions(self):
+        script = '''
+define n = Character(
+    "Narrator",
+    color="#0d5c16",
+)
+
+define bad = Character(
+    "Broken",
+    color=123,
+)
+
+label setup:
+    jump start
+
+label start(channel="Room"):
+    n "This character should still be known."
+    bad "This character should still fail."
+'''
+        with TemporaryDirectory() as raw_dir:
+            root = Path(raw_dir)
+            game_dir = root / "game"
+            game_dir.mkdir()
+            (game_dir / "main.script").write_text(script)
+
+            with self.assertRaises(ScriptLoadError) as raised:
+                load_game(game_dir)
+
+            message = str(raised.exception)
+            self.assertIn("Character name, color, and image must be strings", message)
+            self.assertIn("unknown character bad", message)
+            self.assertNotIn("unknown character n", message)
 
     async def test_runtime_can_run_against_local_io(self):
         script = '''

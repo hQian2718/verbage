@@ -14,6 +14,7 @@ from dialogbot.runtime import GameManager
 
 
 load_dotenv()
+LOGGER = logging.getLogger(__name__)
 
 logging.basicConfig(
     level=os.getenv("LOG_LEVEL", "INFO"),
@@ -45,6 +46,13 @@ class DialogBot(commands.Bot):
 bot = DialogBot()
 
 
+def format_script_load_error(exc: ScriptLoadError, max_chars: int = 1500) -> str:
+    text = str(exc)
+    if len(text) > max_chars:
+        text = text[:max_chars].rstrip() + "\n... truncated; run `python3 check.py` for full output."
+    return f"Script load failed. Full errors were logged.\n```text\n{text}\n```"
+
+
 def guild_only(interaction: discord.Interaction) -> bool:
     return interaction.guild is not None
 
@@ -56,7 +64,8 @@ async def start(interaction: discord.Interaction) -> None:
     try:
         game = load_game("game")
     except ScriptLoadError as exc:
-        await interaction.followup.send(f"Script load failed:\n```text\n{exc}\n```")
+        LOGGER.error("Script load failed during /start:\n%s", exc)
+        await interaction.followup.send(format_script_load_error(exc))
         return
 
     assert interaction.guild is not None
@@ -81,7 +90,8 @@ async def reload_scripts(interaction: discord.Interaction) -> None:
     try:
         game = load_game("game")
     except ScriptLoadError as exc:
-        await interaction.followup.send(f"Script load failed:\n```text\n{exc}\n```", ephemeral=True)
+        LOGGER.error("Script load failed during /reload:\n%s", exc)
+        await interaction.followup.send(format_script_load_error(exc), ephemeral=True)
         return
     await interaction.followup.send(
         f"Loaded {len(game.labels)} labels, {len(game.characters)} characters, "

@@ -56,11 +56,8 @@ def load_game(game_dir: str | Path) -> ScriptGame:
     labels: dict[tuple[str, str], Label] = {}
 
     for path in sorted(root.glob("*.script")):
-        try:
-            parsed = Parser(root, path).parse()
-        except ScriptLoadError as exc:
-            errors.append(str(exc))
-            continue
+        parsed = Parser(root, path).parse()
+        errors.extend(parsed.errors)
 
         for key, character in parsed.characters.items():
             if key in characters:
@@ -87,6 +84,7 @@ class ParsedFile:
     characters: dict[str, Character]
     defaults: dict[str, Any]
     labels: dict[tuple[str, str], Label]
+    errors: list[str]
 
 
 class Parser:
@@ -120,9 +118,7 @@ class Parser:
                 self.error(line, f"unknown top-level statement: {text}")
                 self.index += 1
 
-        if self.errors:
-            raise ScriptLoadError("\n".join(self.errors))
-        return ParsedFile(self.characters, self.defaults, self.labels)
+        return ParsedFile(self.characters, self.defaults, self.labels, self.errors)
 
     def parse_define(self) -> None:
         first = self.lines[self.index]
@@ -148,7 +144,9 @@ class Parser:
             name = ast.literal_eval(call.args[0])
             kwargs = {kw.arg: ast.literal_eval(kw.value) for kw in call.keywords if kw.arg}
             color = kwargs["color"]
-            image = kwargs["image"]
+            # If no avatar key is provided, try the character key. Missing
+            # files are fine; adapters can render the character without one.
+            image = kwargs.get("image", key)
         except Exception as exc:
             self.error(first, f"invalid Character definition: {exc}")
             return
@@ -176,14 +174,19 @@ class Parser:
     def parse_label(self, line: Line) -> None:
         match = re.match(r'label\s+([A-Za-z_]\w*)\s*(?:\(\s*channel\s*=\s*"([^"]+)"\s*\))?\s*:\s*$', line.text)
         if not match:
-            self.error(line, "invalid label declaration")
+            self.error(line, label_error_message(line.text))
             self.index += 1
+            self.skip_indented_block(line.indent)
             return
         name, channel = match.groups()
         self.index += 1
         body = self.parse_block(line.indent)
         label = Label(self.namespace, name, channel, body, line.source)
         self.labels[label.key] = label
+
+    def skip_indented_block(self, parent_indent: int) -> None:
+        while self.index < len(self.lines) and self.lines[self.index].indent > parent_indent:
+            self.index += 1
 
     def parse_block(self, parent_indent: int) -> list[Statement]:
         body: list[Statement] = []
@@ -417,6 +420,23 @@ def parse_duration(raw: str, line: Line, parser: Parser) -> float:
     if unit.startswith("hour"):
         return amount * 3600
     return amount
+
+
+def label_error_message(text: str) -> str:
+    expected = 'expected: label name(channel="Channel Name"): or label setup:'
+    if not text.endswith(":"):
+        return f"invalid label declaration; label declarations must end with ':'. {expected}"
+
+    match = re.match(r"label\s+([A-Za-z_]\w*)\s*\((.*)\)\s*:\s*$", text)
+    if match:
+        raw_args = match.group(2)
+        if re.search(r"\bChannel\s*=", raw_args):
+            return 'invalid label declaration; use lowercase channel=, for example: label start(channel="Room"):'
+        if "channel" in raw_args:
+            return 'invalid label declaration; channel must be written as channel="Room"'
+        return f"invalid label declaration; unsupported label parameter list ({raw_args!r}). {expected}"
+
+    return f"invalid label declaration; {expected}"
 
 
 def parse_optional_timeout(text: str, keyword: str, line: Line, parser: Parser) -> float | None:
