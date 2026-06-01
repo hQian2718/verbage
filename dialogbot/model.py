@@ -82,6 +82,11 @@ class Jump(Statement):
 
 
 @dataclass
+class Continue(Statement):
+    pass
+
+
+@dataclass
 class Run(Statement):
     targets: list[LabelRef]
 

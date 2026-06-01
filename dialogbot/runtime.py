@@ -15,6 +15,7 @@ from .model import (
     Button,
     ChannelLink,
     ClearChannel,
+    Continue,
     Dialogue,
     ExprStatement,
     If,
@@ -44,6 +45,12 @@ class JumpSignal(Exception):
     # menus/buttons/ifs abort their current body exactly like a Ren'Py jump.
     def __init__(self, target: LabelRef) -> None:
         self.target = target
+
+
+class ContinueSignal(Exception):
+    # Continue is scoped to the nearest menu. It lets an option body finish the
+    # menu and resume at the statement after the menu in the same label.
+    pass
 
 
 @dataclass
@@ -294,6 +301,8 @@ class GameSession:
             await self.send_dialogue(context, statement)
         elif isinstance(statement, Jump):
             raise JumpSignal(statement.target)
+        elif isinstance(statement, Continue):
+            raise ContinueSignal()
         elif isinstance(statement, Run):
             await self.run_children(context, statement)
         elif isinstance(statement, Menu):
@@ -439,6 +448,9 @@ class GameSession:
                     await self.flush_pending_dialogue_delay(context)
                 except JumpSignal:
                     raise
+                except ContinueSignal:
+                    await self.flush_pending_dialogue_delay(context)
+                    return
         finally:
             await self.io.close_menu(handle)
 

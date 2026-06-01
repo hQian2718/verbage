@@ -29,11 +29,13 @@ label table_2_start(channel="Table 2 Name"):
     menu:
         "Of Course.":
             n "He nods at you."
+            continue
         "What is a political commisar?":
             gw "Back in the day, every worker at the Factory had a political advisor."
             gw "I was responsible for the political education of the Fifth Unit."
             gw "I ensured that everyone understood their work as essential to the success of the Party's socialist state, and answered their questions."
             gw "Of course, now at private companies, you don't talk about that too much."
+            continue
     
     gw "By the way, can you get us some green tea to drink?"
     button "yes":

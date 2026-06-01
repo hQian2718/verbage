@@ -382,6 +382,65 @@ label done(channel="Room"):
                 [event["kind"] for event in io.events if event["kind"].startswith("menu")],
             )
 
+    async def test_menu_continue_resumes_after_menu(self):
+        script = '''
+default picker = ""
+default after_menu = False
+
+label setup:
+    jump start
+
+label start(channel="Room"):
+    menu:
+        "Choose":
+            $ picker = username()
+            continue
+    $ after_menu = True
+    "Done."
+'''
+        with TemporaryDirectory() as raw_dir:
+            root = Path(raw_dir)
+            game_dir = root / "game"
+            output_dir = root / "out"
+            game_dir.mkdir()
+            (game_dir / "main.script").write_text(script)
+
+            game = load_game(game_dir)
+            io = LocalDialogIO(output_dir)
+            io.queue_menu("Room", 0, "Bob", "bob")
+            session = GameSession(io, game)
+            session.min_delay = 0
+            session.max_delay = 0
+
+            await session.run_root()
+
+            self.assertEqual(session.variables["picker"], "Bob")
+            self.assertTrue(session.variables["after_menu"])
+            self.assertEqual(
+                ["menu", "menu_click", "menu_close"],
+                [event["kind"] for event in io.events if event["kind"].startswith("menu")],
+            )
+            self.assertIn(
+                ("narration", "Done."),
+                [(event["kind"], event["text"]) for event in io.events],
+            )
+
+    def test_continue_outside_menu_is_invalid(self):
+        script = '''
+label setup:
+    continue
+'''
+        with TemporaryDirectory() as raw_dir:
+            root = Path(raw_dir)
+            game_dir = root / "game"
+            game_dir.mkdir()
+            (game_dir / "main.script").write_text(script)
+
+            with self.assertRaises(ScriptLoadError) as raised:
+                load_game(game_dir)
+
+            self.assertIn("continue can only be used inside a menu option", str(raised.exception))
+
     async def test_timed_menu_runs_timeout_branch(self):
         script = '''
 default timed_out = False

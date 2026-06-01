@@ -12,6 +12,7 @@ from .model import (
     ChannelLink,
     Character,
     ClearChannel,
+    Continue,
     Dialogue,
     ExprStatement,
     If,
@@ -251,6 +252,9 @@ class Parser:
         if text.startswith("jump "):
             self.index += 1
             return Jump(line.source, LabelRef.parse(text[5:]))
+        if text == "continue":
+            self.index += 1
+            return Continue(line.source)
         if text.startswith("run "):
             self.index += 1
             return Run(line.source, parse_run_targets(text[4:]))
@@ -524,7 +528,12 @@ def validate_game(game: ScriptGame) -> list[str]:
     return errors
 
 
-def validate_statements(game: ScriptGame, label: Label, statements: list[Statement]) -> list[str]:
+def validate_statements(
+    game: ScriptGame,
+    label: Label,
+    statements: list[Statement],
+    allow_continue: bool = False,
+) -> list[str]:
     errors: list[str] = []
     for statement in statements:
         try:
@@ -534,6 +543,9 @@ def validate_statements(game: ScriptGame, label: Label, statements: list[Stateme
                 validate_interpolation(statement.text, game.defaults)
             elif isinstance(statement, Jump):
                 resolve_label(game, label.namespace, statement.target)
+            elif isinstance(statement, Continue):
+                if not allow_continue:
+                    errors.append(f"{statement.source.format()}: continue can only be used inside a menu option")
             elif isinstance(statement, Run):
                 for target in statement.targets:
                     resolve_label(game, label.namespace, target)
@@ -543,11 +555,11 @@ def validate_statements(game: ScriptGame, label: Label, statements: list[Stateme
                 for option in statement.options:
                     if option.condition:
                         validate_condition(option.condition, game.defaults)
-                    errors.extend(validate_statements(game, label, option.body))
+                    errors.extend(validate_statements(game, label, option.body, allow_continue=True))
                 if statement.timeout_body:
-                    errors.extend(validate_statements(game, label, statement.timeout_body))
+                    errors.extend(validate_statements(game, label, statement.timeout_body, allow_continue=True))
             elif isinstance(statement, Button):
-                errors.extend(validate_statements(game, label, statement.body))
+                errors.extend(validate_statements(game, label, statement.body, allow_continue=allow_continue))
             elif isinstance(statement, InputBlock):
                 if statement.variable not in game.defaults:
                     errors.append(f"{statement.source.format()}: unknown input variable {statement.variable}")
@@ -558,12 +570,12 @@ def validate_statements(game: ScriptGame, label: Label, statements: list[Stateme
                         validate_condition(f"{statement.variable} contains {case.expression}", game.defaults)
                     elif case.kind == "equals" and case.expression:
                         validate_condition(case.expression, game.defaults)
-                    errors.extend(validate_statements(game, label, case.body))
+                    errors.extend(validate_statements(game, label, case.body, allow_continue=allow_continue))
             elif isinstance(statement, If):
                 for branch in statement.branches:
                     if branch.condition:
                         validate_condition(branch.condition, game.defaults)
-                    errors.extend(validate_statements(game, label, branch.body))
+                    errors.extend(validate_statements(game, label, branch.body, allow_continue=allow_continue))
             elif isinstance(statement, ExprStatement):
                 validate_statement(statement.expression, game.defaults)
         except (ScriptLoadError, ExpressionError) as exc:

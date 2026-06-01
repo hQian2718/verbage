@@ -79,6 +79,8 @@ When a user clicks an option:
 
 - The runtime records that user for `username()`.
 - The selected option body executes inline.
+- If the body reaches `continue`, the menu closes and execution resumes at the
+  statement after the menu in the same label.
 - If the body reaches a `jump`, the menu closes and control leaves the current
   label.
 - If the body does not jump, the menu stays live for more users.
