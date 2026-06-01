@@ -3,15 +3,43 @@ label begin(channel="Station"):
     run (table_1_start, table_2_start, table_3_start)
     n "Next up is the main course."
 
-label table_1_start(channel="Table 1 Name"):
-    bao "Hello"
-    yan "Hello"
-    zl  "Hello"
+label table_1_start(channel="Hibuscus"):
+    yan "Well, you've got to tell us more! What did you find out?"
+    bao "Listen to that! *us*! I'll be the third wheel while you love-doves spill your honey jar in everyone's face."
+    zl  "Wow, Bao, the way you overreact hasn't changed at all!"
+    yan "Enough of that, Zilian. If \'Detective Bao\' changes easily, he wouldn't be on the 7 o'clock news solving cases."
+    bao "I merely assisted the police by answering their questions about the burglar."
+    yan "That's not what the article said! That policeman said he solved the case with your 'enthusiastic and helpful assistance.'"
 
 label table_2_start(channel="Table 2 Name"):
-    ld "Hello"
-    min "Hello"
-    gw "Hello"
+    min "Your son, he goes to middle school now, right? He must be tall!"
+    gw "Children are like bamboo; they grow taller every day. And yes, he's graduating this spring."
+    min "So soon!"
+    min "Last time I saw him he was still a tiny kid! He was so shy and kept hiding behind you!"
+    gw "In that regard he hasn't changed a bit. He wouldn't even talk to me now; he's holed up in his room all day with the AC on."
+    ld "He probably talks to people his age!"
+    ld "just not with his seniors."
+    ld "I never understood the appeal of having kids."
+    ld "Little trouble makers."
+    gw "hahaha, to each their own."
+    gw "Master Lu, why don't we sit down and start with something to drink?"
+    n "The man turns to you with a polite smile."
+    gw "Young waiter, I would like to express my thanks for your service at our table tonight."
+    gw "We are all colleagues from the Factory's Fifth Unit. We worked together for more than 20 years. I was their political commisar."
+    menu:
+        "Of Course.":
+            n "He nods at you."
+        "What is a political commisar?":
+            gw "Back in the day, every worker at the Factory had a political advisor."
+            gw "I was responsible for the political education of the Fifth Unit."
+            gw "I ensured that everyone understood their work as essential to the success of the Party's socialist state, and answered their questions."
+            gw "Of course, now at private companies, you don't talk about that too much."
+    
+    gw "By the way, can you get us some green tea to drink?"
+    button "yes":
+        n "You give out three cups and pour the tea."
+    
+
 
 label table_3_start(channel="Table 3 Name"):
     cf "Hello"

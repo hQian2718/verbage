@@ -4,13 +4,17 @@ default ready_count = 0
 label setup:
     time limit 15 minutes
     run show_num_player_promot
-    jump start
+    jump act_1.table_1_start
 
 label show_num_player_promot(channel="Settings"):
     n "This game is designed for 2 to 3 players."
     n "You can be in the same room or on a voice call."
     n "If you are checking it out by yourself, know that it will be almost impossible to succeed, as the game assumes there are multiple players who listen to different conversations and piece together clues."
-    jump get_num_players
+    # testing
+    $ ready_count = 1
+    $ num_players = 1
+    jump act_1.begin
+    # jump get_num_players
 
 label get_num_players(channel="Settings"):
     input "Please tell me the number of players. Just the arabic number please." into num_players:
@@ -31,7 +35,7 @@ label start(channel="Botanical Gardens"):
     n "The restaurant is just visible across the road."
     n "The hanging red banner says:"
     n "New Journey, Original Mission - Celebrating 50 years of Silk Manufacturing"
-    n "1935 - 2003"
+    n "1953 - 2003"
     m "Before I became the manager, I was a waiter just like you!"
     m "So I know the job, and really, it's simple!"
     n "Crickets are singing enthusiastically. It's summer."
@@ -65,7 +69,7 @@ label start(channel="Botanical Gardens"):
     
     n "Welcome to the game!"
     n "Your goal here is to investigate the bomb threat over the course of the banquet."
-    n "If you do welll, you'll uncover who wrote this note and why."
+    n "If you do well, you'll uncover who wrote this note and why."
     n "Hopefully, you'll also try to locate the bomb and prevent any deaths."
     n "We'll see how you do!"
     
