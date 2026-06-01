@@ -18,9 +18,10 @@ def main() -> int:
         print(exc, file=sys.stderr)
         return 1
 
+    image_count = sum(1 for character in game.characters.values() if character.image_path is not None)
     print(
         f"Loaded {len(game.labels)} labels, {len(game.characters)} characters, "
-        f"and {len(game.defaults)} defaults from {args.game_dir}."
+        f"{image_count} images, and {len(game.defaults)} defaults from {args.game_dir}."
     )
     return 0
 
