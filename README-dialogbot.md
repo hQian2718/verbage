@@ -114,6 +114,20 @@ python3 check.py
 python3 check.py game
 ```
 
+Estimate straight-line timing for a label:
+
+```sh
+python3 estimate.py main.start
+python3 estimate.py act_1.begin --game-dir game
+```
+
+The estimator uses the same timing environment variables as the runtime:
+`DIALOG_DELAY_PER_CHAR`, `DIALOG_MIN_DELAY`, `DIALOG_MAX_DELAY`,
+`DIALOG_TYPING_DELAY`, and `DIALOG_WAIT_SCALE`. It counts dialogue reading
+delays and `wait` statements. When it reaches a branch, jump, `run`, menu,
+button, input, or conditional, it prints a note instead of transitively
+estimating that path.
+
 The checker parses every `*.script` file, prints all parser/validation errors,
 and exits nonzero when the scripts are invalid. The Discord `/start` and
 `/reload` commands also log the full parser error server-side and send a short

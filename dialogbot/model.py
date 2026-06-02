@@ -110,6 +110,7 @@ class Menu(Statement):
 class Button(Statement):
     text: str
     body: list[Statement]
+    timeout_seconds: float | None = None
 
 
 @dataclass

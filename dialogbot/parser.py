@@ -309,14 +309,16 @@ class Parser:
         return Menu(line.source, options, timeout_seconds, timeout_body)
 
     def parse_button(self, line: Line) -> Button:
-        match = re.match(r'button\s+"((?:\\"|[^"])*)"\s*:?\s*$', line.text)
+        match = re.match(r'button\s+"((?:\\"|[^"])*)"(?:\s+timeout\s+(.+?))?\s*:?\s*$', line.text)
         if not match:
             self.error(line, "invalid button statement")
             self.index += 1
-            return Button(line.source, "", [])
+            return Button(line.source, "", [], None)
+        text, timeout_raw = match.groups()
+        timeout_seconds = parse_duration(timeout_raw, line, self) if timeout_raw else None
         self.index += 1
         body = self.parse_block(line.indent)
-        return Button(line.source, match.group(1).replace('\\"', '"'), body)
+        return Button(line.source, text.replace('\\"', '"'), body, timeout_seconds)
 
     def parse_input(self, line: Line) -> InputBlock:
         match = re.match(

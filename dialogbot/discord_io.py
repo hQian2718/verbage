@@ -113,9 +113,14 @@ class DiscordDialogIO:
         message = await self.bot.wait_for("message", check=check)
         return message.content
 
-    async def wait_for_button(self, channel_name: str, label: str) -> UserAction:
+    async def wait_for_button(
+        self,
+        channel_name: str,
+        label: str,
+        timeout_seconds: float | None = None,
+    ) -> UserAction | None:
         channel = await self.get_or_create_channel(channel_name)
-        view = SingleButtonView(label)
+        view = SingleButtonView(label, timeout_seconds)
         message = await self.retry_discord_call(
             f"send button to #{channel.name}",
             lambda: channel.send(self.timestamp_only(), view=view),
@@ -123,7 +128,7 @@ class DiscordDialogIO:
         await view.wait()
         await disable_view(message, view)
         if view.user is None:
-            raise RuntimeError("button view stopped without a user")
+            return None
         return UserAction(str(view.user.id), view.user.display_name)
 
     async def open_menu(self, channel_name: str, choices: list[MenuChoice]) -> MenuHandle:
@@ -314,8 +319,8 @@ class DiscordDialogIO:
 
 
 class SingleButtonView(discord.ui.View):
-    def __init__(self, label: str) -> None:
-        super().__init__(timeout=None)
+    def __init__(self, label: str, timeout_seconds: float | None = None) -> None:
+        super().__init__(timeout=timeout_seconds)
         self.user: discord.User | discord.Member | None = None
         button = discord.ui.Button(label=label, style=discord.ButtonStyle.primary)
         button.callback = self.clicked

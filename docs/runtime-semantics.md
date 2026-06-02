@@ -102,6 +102,17 @@ button "Look around":
     $ kitchen_investigator = username()
 ```
 
+Buttons can time out:
+
+```text
+button "Look around" timeout 30:
+    $ kitchen_investigator = username()
+```
+
+If nobody clicks before the timeout, the adapter closes/disables the button and
+execution continues after the button block. If the button is clicked before the
+timeout, the body runs normally.
+
 ## Channel Links
 
 `channel link "Label" to "Channel"` posts a non-blocking navigation button.

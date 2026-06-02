@@ -3,12 +3,12 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
-import os
 import re
 import secrets
 from dataclasses import dataclass, field
 from typing import Any
 
+from .config import GameConfig
 from .expressions import eval_condition, eval_expr_text, exec_statement
 from .io import DialogIO, MenuChoice, UserAction
 from .model import (
@@ -141,6 +141,7 @@ class GameSession:
     active_channels: dict[str, str] = field(default_factory=dict)
     known_channels: set[str] = field(default_factory=set)
     last_channel_name: str | None = None
+    config: GameConfig = field(default_factory=GameConfig.from_env)
     cleanup_prompt_enabled: bool = False
     tasks: set[asyncio.Task[Any]] = field(default_factory=set)
     root_task: asyncio.Task[Any] | None = None
@@ -150,12 +151,12 @@ class GameSession:
 
     def __post_init__(self) -> None:
         self.variables = dict(self.game.defaults)
-        self.delay_per_char = float(os.getenv("DIALOG_DELAY_PER_CHAR", "0.03"))
-        self.min_delay = float(os.getenv("DIALOG_MIN_DELAY", "1.5"))
-        self.max_delay = float(os.getenv("DIALOG_MAX_DELAY", "6"))
-        self.typing_delay = float(os.getenv("DIALOG_TYPING_DELAY", "0.5"))
-        self.wait_scale = float(os.getenv("DIALOG_WAIT_SCALE", "1"))
-        self.cleanup_prompt_timeout = float(os.getenv("DIALOG_CLEANUP_TIMEOUT", "120"))
+        self.delay_per_char = self.config.delay_per_char
+        self.min_delay = self.config.min_delay
+        self.max_delay = self.config.max_delay
+        self.typing_delay = self.config.typing_delay
+        self.wait_scale = self.config.wait_scale
+        self.cleanup_prompt_timeout = self.config.cleanup_prompt_timeout
 
     async def start(self) -> None:
         self.root_task = asyncio.create_task(self.run_root(), name=f"dialog-game-{self.scope_name}")
@@ -411,7 +412,12 @@ class GameSession:
     async def show_button(self, context: EventContext, statement: Button) -> None:
         if not context.channel_name:
             raise RuntimeErrorWithContext("button used before entering a channel")
-        action = await self.io.wait_for_button(context.channel_name, statement.text)
+        timeout_seconds = None
+        if statement.timeout_seconds is not None:
+            timeout_seconds = statement.timeout_seconds * self.wait_scale
+        action = await self.io.wait_for_button(context.channel_name, statement.text, timeout_seconds)
+        if action is None:
+            return
         context.last_click_user = action
         await self.execute_block(context, statement.body)
 

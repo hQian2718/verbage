@@ -441,6 +441,78 @@ label setup:
 
             self.assertIn("continue can only be used inside a menu option", str(raised.exception))
 
+    async def test_button_timeout_continues_after_button(self):
+        script = '''
+default clicked = False
+default after_button = False
+
+label setup:
+    jump start
+
+label start(channel="Room"):
+    button "Wait" timeout 0.001:
+        $ clicked = True
+    $ after_button = True
+    "After."
+'''
+        with TemporaryDirectory() as raw_dir:
+            root = Path(raw_dir)
+            game_dir = root / "game"
+            output_dir = root / "out"
+            game_dir.mkdir()
+            (game_dir / "main.script").write_text(script)
+
+            game = load_game(game_dir)
+            io = LocalDialogIO(output_dir)
+            session = GameSession(io, game)
+            session.min_delay = 0
+            session.max_delay = 0
+
+            await session.run_root()
+
+            self.assertFalse(session.variables["clicked"])
+            self.assertTrue(session.variables["after_button"])
+            self.assertIn("button_timeout", [event["kind"] for event in io.events])
+            self.assertIn(
+                ("narration", "After."),
+                [(event["kind"], event["text"]) for event in io.events],
+            )
+
+    async def test_button_click_before_timeout_runs_body(self):
+        script = '''
+default clicked = False
+default clicker = ""
+
+label setup:
+    jump start
+
+label start(channel="Room"):
+    button "Wait" timeout 10:
+        $ clicked = True
+        $ clicker = username()
+'''
+        with TemporaryDirectory() as raw_dir:
+            root = Path(raw_dir)
+            game_dir = root / "game"
+            output_dir = root / "out"
+            game_dir.mkdir()
+            (game_dir / "main.script").write_text(script)
+
+            game = load_game(game_dir)
+            io = LocalDialogIO(output_dir)
+            io.queue_button("Room", "Wait", "Alice", "alice")
+            session = GameSession(io, game)
+            session.min_delay = 0
+            session.max_delay = 0
+
+            await session.run_root()
+
+            self.assertTrue(session.variables["clicked"])
+            self.assertEqual("Alice", session.variables["clicker"])
+            event_kinds = [event["kind"] for event in io.events]
+            self.assertIn("button_click", event_kinds)
+            self.assertNotIn("button_timeout", event_kinds)
+
     async def test_timed_menu_runs_timeout_branch(self):
         script = '''
 default timed_out = False

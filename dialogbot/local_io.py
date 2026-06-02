@@ -79,9 +79,22 @@ class LocalDialogIO:
         await self.record(channel_name, "input", text)
         return text
 
-    async def wait_for_button(self, channel_name: str, label: str) -> UserAction:
+    async def wait_for_button(
+        self,
+        channel_name: str,
+        label: str,
+        timeout_seconds: float | None = None,
+    ) -> UserAction | None:
         await self.record(channel_name, "button", label)
-        action = await self.button_queues.setdefault((channel_name, label), asyncio.Queue()).get()
+        queue = self.button_queues.setdefault((channel_name, label), asyncio.Queue())
+        try:
+            if timeout_seconds is None:
+                action = await queue.get()
+            else:
+                action = await asyncio.wait_for(queue.get(), timeout=timeout_seconds)
+        except asyncio.TimeoutError:
+            await self.record(channel_name, "button_timeout", label)
+            return None
         await self.record(channel_name, "button_click", label, user=action.display_name)
         return action
 
