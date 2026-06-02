@@ -1,0 +1,46 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Protocol
+
+from .model import Character
+
+
+@dataclass(frozen=True)
+class UserAction:
+    user_id: str
+    display_name: str
+
+
+@dataclass(frozen=True)
+class MenuChoice:
+    index: int
+    text: str
+
+
+class MenuHandle(Protocol):
+    channel_name: str
+
+
+class DialogIO(Protocol):
+    """Boundary between the script runtime and an output/input backend."""
+
+    async def prepare_session(self, session_id: str) -> None: ...
+    async def ensure_channel(self, channel_name: str) -> None: ...
+    async def typing_pause(self, channel_name: str, seconds: float) -> None: ...
+    async def send_notice(self, channel_name: str, text: str) -> None: ...
+    async def send_narration(self, channel_name: str, text: str) -> None: ...
+    async def send_character_dialogue(self, channel_name: str, character: Character, text: str) -> None: ...
+    async def send_channel_link(self, channel_name: str, label: str, target_channel_name: str) -> None: ...
+    async def wait_for_input(self, channel_name: str, prompt: str | None = None) -> str: ...
+    async def wait_for_button(
+        self,
+        channel_name: str,
+        label: str,
+        timeout_seconds: float | None = None,
+    ) -> UserAction | None: ...
+    async def open_menu(self, channel_name: str, choices: list[MenuChoice]) -> MenuHandle: ...
+    async def wait_for_menu_click(self, handle: MenuHandle) -> tuple[int, UserAction]: ...
+    async def close_menu(self, handle: MenuHandle) -> None: ...
+    async def clear_channel(self, channel_name: str) -> None: ...
+    async def delete_channels(self, channel_names: list[str]) -> None: ...

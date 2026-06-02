@@ -1,0 +1,98 @@
+default app_1 = "Vegetarian Goose"
+default app_2 = "Celery Salid"
+
+label begin(channel="Station"):
+    n "You are on the second floor."
+    run (table_1_start, table_2_start, table_3_start)
+    n "Next up is the main course."
+
+label table_1_start(channel="Hibuscus"):
+    yan "Well, you've got to tell us more! What did you find out?"
+    bao "Listen to that! *us*! I'll be the third wheel while you love-doves spill your honey jar in everyone's face."
+    zl  "Wow, Bao, the way you overreact hasn't changed at all!"
+    yan "Enough of that, Zilian. If \'Detective Bao\' changes easily, he wouldn't be on the 7 o'clock news solving cases."
+    bao "I merely assisted the police by answering their questions about the burglar."
+    yan "That's not what the article said! That policeman said he solved the case with your 'enthusiastic and helpful assistance.'"
+
+label table_2_start(channel="Table 2 Name"):
+    min "Your son, he goes to middle school now, right? He must be tall!"
+    gw "Children are like bamboo; they grow taller every day. And yes, he's graduating this spring."
+    min "So soon!"
+    min "Last time I saw him he was still a tiny kid! He was so shy and kept hiding behind you!"
+    gw "In that regard he hasn't changed a bit. He wouldn't even talk to me now; he's holed up in his room all day with the AC on."
+    ld "He probably talks to people his age!"
+    ld "just not with his seniors."
+    ld "I never understood the appeal of having kids."
+    ld "Little trouble makers."
+    gw "hahaha, to each their own."
+    
+    ld "Guowei, for your kid's big exam, I've got some incense that will help him focus."
+    ld "It's really useful! Calms the nerves too."
+    gw "Hahaha, I'm sure it does."
+    n "He's not interested."
+    n "The first appetizer has arrived. Serve it now to interrupt this conversation?"
+
+    menu timeout 10 seconds:
+        "Yes":
+            n "You announce: \'$app_1\'."
+            min "I really like this dish!"
+            gw  "Let's see whether the restaurant's standards improved since privatization."
+            n "The matter of the incense is dropped."
+            continue
+        "No":
+            n "You listen to the conversation a bit more."
+            ld "You can have it for free, old sport!"
+            gw "Master Lu, as a Marxist, I don't really believe this sort of superstition!"
+            gw "It wasn't useful back then, and it's not useful now."
+            ld "Come on, what happened that time was clearly beyond my powers."
+            ld "I tried my best, but there are things even a practitioner like me cannot change."
+            n "There is an awkward silence. 
+            n "You quickly step in and announce: \'$app_1\'."
+            n "All three of them eats in silence, until Guowei rises from his chair."
+            coninue
+        timeout:
+            n "After a while, Guowei approaches you from his chair."
+            continue
+    
+    n "He turns to you with a polite smile."
+    gw "Young waiter, I would like to express my thanks for your service at our table tonight."
+    gw "We are all colleagues from the Factory's Fifth Unit. We worked together for more than 20 years. I was their political commisar."
+    menu:
+        "Of Course.":
+            n "He nods at you."
+            continue
+        "What is a political commisar?":
+            gw "Back in the day, every worker at the Factory had a political advisor."
+            gw "I was responsible for the political education of the Fifth Unit."
+            gw "I ensured that everyone understood their work as essential to the success of the Party's socialist state."
+            gw "Knowing the significance of one's labor makes a huge difference."
+            gw "Of course, now at private companies, you don't talk about that too much."
+            continue
+    
+    gw "By the way, can you get us some green tea to drink?"
+    button "yes":
+        n "You give out three cups and pour the tea."
+    
+    ld "Waiter, don't let Guowei patronize you!"
+    gw "I was only being polite."
+    ld "I'll introduce the rest of us old folks!"
+    ld "I'm Lu Da, nowadays I study the msytical art of the I Ching."
+    ld "And this is Min, when we were young, she was known for her beauty throughout the Fifth Unit."
+    min "Oh save it, Master Lu, I wasn't that pretty even when I was young."
+    min "I was tired all the time."
+    min "And I had dye on my face from the job. It was impossible to wash off!"
+    min "Cheng Ji at the other table, now she was pretty."
+    min "And so smart too! How she remembers all the patterns is beyond me."
+
+
+label table_3_start(channel="Table 3 Name"):
+    cf "Baogen, Mugen! How are you two doing?"
+    bgn "Fong! Hello! Let me tell you something:"
+    bgn "Last month, my brother just moved in to the unit next to me!"
+    cj "Ah, you two have reunited! At the factory you insisted on living in separate dorms."
+    mg "That's back then."
+    bgn  "Now our cousin is threatening to move us into senior homes! This is our answer to her."
+    bgn "Ever since then, I've learned a lot about my brother's dating life!"
+    n   "Everyone found this funny."
+    mg  ""
+    cj "Hello"

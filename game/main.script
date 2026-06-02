@@ -1,65 +1,91 @@
-# this is a comment
+default num_players = 0
+default ready_count = 0
 
-# there will be one bot appearance for each character.
-# The display name will be like this.
-# look for narrator.jpg / narrator.png in images/
-
-define n = Character(
-    "Narrator",
-    color="#0d5c16",
-    image="narrator",
-)
-
-define j = Character(
-    "Jia li",
-    color="#b16399",
-    image="jiali"
-)
-# game variables can be bool, int, or string.
-# a variable which has not been assigned a value is
-# false, 0, or "".
-
-default door_locked = True
-default num_players = 2
-default enter_count = 0
-default correct_code = "dead beef"
-default code_entered = ""
-default game_won = False
-
-# A special label which is the default entry point.
 label setup:
-    time limit 10 minutes
-    # The game will end in 10 minutes as the players time out.
-    jump start
+    time limit 15 minutes
+    run show_num_player_promot
+    jump act_1.table_1_start
 
-label start(channel="Entrance"):
-    n "You are outside a big restaurant."
-    # The system will wait between messages to accomodate human reading pace
-    n "Two stone lion statues sit in front of the wooden doors."
-    n "You have a mission: a suspect may be hiding in this restaurant."
-    n "However, the door is locked. There is a key pad beside the door."
-    run extra
+label show_num_player_promot(channel="Settings"):
+    n "This game is designed for 2 to 3 players."
+    n "You can be in the same room or on a voice call."
+    n "If you are checking it out by yourself, know that it will be almost impossible to succeed, as the game assumes there are multiple players who listen to different conversations and piece together clues."
+    # testing
+    $ ready_count = 1
+    $ num_players = 1
+    jump act_1.begin
+    # jump get_num_players
+
+label get_num_players(channel="Settings"):
+    input "Please tell me the number of players. Just the arabic number please." into num_players:
+        case "1":
+            $ num_players = 1
+        case "2":
+            $ num_players = 2
+        case "3":
+            $ num_players = 3
+        case _:
+            jump get_num_players 
         
-    jump door
+label start(channel="Botanical Gardens"):
+    m "So I'll say it again:"
+    wait 5
+    m "Your performance tonight is very important."
+    n "Your manager has gathered you under an old willow tree."
+    n "The restaurant is just visible across the road."
+    n "The hanging red banner says:"
+    n "New Journey, Original Mission - Celebrating 50 years of Silk Manufacturing"
+    n "1953 - 2003"
+    m "Before I became the manager, I was a waiter just like you!"
+    m "So I know the job, and really, it's simple!"
+    n "Crickets are singing enthusiastically. It's summer."
+    m "Each of you will stay next to a table!"
+    m "And serve dishes that arrive from the kitchen!"
+    m "And fill up their cups!"
+    m "Lastly, there are some seniors at your tables who retired from the Factory decades ago."
+    m "Just humor them if they try to talk to you, old people can be lonely."
+    m "Dismissed!"
+    m "As the manager tries to leave, a young server suddenly runs out from the restaurant and shows him a piece of paper."
+    n "He turns pale as he reads it."
+    wait 3
+    m "You'd better see this."
+    n "He shows you the paper, which is yellow with age. It has the Silk Factory's official letterhead. It only has a short message, which is written neatly on a fountain pen:"
+    n "Dear staff, I have placed an explosive gift in your scenic establishment. If you search for it or contact the police, it will detonate. If you cooperate, I promise no one innocent will be hurt."
+    n "Signed, Mister Bomb"
 
-label extra(channel="Extra"):
-    n "You can switch channels in the middle of a label."
+    server "I just checked, and all the phone wires have been cut!"
+    m "They are serious! I, I thought this only happened in movies!"
+    n "Your manager eventually recovers some cool."
+    m "Who could have written this?"
+    n "It's early, only a few guests have arrived at the restaurant."
+    n "A group of 60-somethings are making conversation on the balcony."
+    server "Those are retirees from the Factory and the only guests right now."
+    m "Which makes them ... our only suspects."
+    n "He looks at the neat hand-writing again."
+    m "No one else could have the factory's letter paper!"
 
-label door(channel="Entrance"):
-    n "You stand in front of the door."
+    m "You all keep your eyes open and your mouth shut!"
+    m "I'll assign you to the tables where they are sitting."
+    
+    n "Welcome to the game!"
+    n "Your goal here is to investigate the bomb threat over the course of the banquet."
+    n "If you do well, you'll uncover who wrote this note and why."
+    n "Hopefully, you'll also try to locate the bomb and prevent any deaths."
+    n "We'll see how you do!"
+    
+    wait 5
+
+    n "Over the course of the game, feel free to chat to each other. The waiters all have walkie talkies."
+    n "The seating arrangement tells you that the group or retirees will sit at three tables."
+    n "More guests arrive and get seated. Are you ready to start playing?"    
+    jump ask_all_ready
+
+label ask_all_ready(channel="Botanical Gardens"):
     menu:
-        "Enter the Restaurant" if not door_locked:
+        "Start the Game":
             # Update a game variable
-            $ enter_count += 1
-            if enter_count == num_players:
+            $ ready_count += 1
+            if ready_count == num_players:
                 n "You all enter the restaurant."
-                jump interior.enter_restaurant
-            jump door
-            
-        "Enter a Code" if door_locked:
-            # Take the next incoming user message as the code
-            $ code_entered = input()
-            if code_entered == correct_code:
-                n "The lock snaps open."
-                $ door_locked = False
-            jump door
+                jump act_1.begin
+            jump ask_all_ready

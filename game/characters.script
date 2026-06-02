@@ -1,0 +1,72 @@
+define n = Character(
+    "Narrator",
+    color="#a48335"
+)
+define m = Character(
+    "Manager",
+    color="#ff6767"
+)
+define server = Character(
+    "Fellow Server",
+    color="#df6035"
+)
+# 包尚
+define bao = Character(
+    "Bao Shang",
+    color="#1403ca",
+    image="bao shang"
+)
+# 白燕
+define yan = Character(
+    "Bai Yan",
+    color="#609400",
+    image="bai yan"
+)
+# 白梓莲
+define zl = Character(
+    "Bai Zilian",
+    color="#d2007a",
+    image="bai zilian"
+)
+# 鲁达
+define ld = Character(
+    "Lu Da",
+    color="#8f00a8",
+    image="lu da"
+)
+# 刘敏
+define min = Character(
+    "Liu Min",
+    color="#0fb446",
+    image="liu min"
+)
+# 梁国维
+define gw = Character(
+    "Liang Guowei",
+    color="#db0000",
+    image="liang guowei"
+)
+# 陈芳
+define cf = Character(
+    "Chen Fong",
+    color="#da6200",
+    image="chen fong"
+)
+# 柴木根
+define mg = Character(
+    "Chai Mugen",
+    color="#008b35",
+    image="chai mugen"
+)
+# 柴宝根
+define bgn = Character(
+    "Chai Baogen",
+    color="#b2bf00",
+    image="chai baogen"
+)
+# 程继
+define cj = Character(
+    "Cheng Ji",
+    color="#0034d1",
+    image="cheng ji"
+)

@@ -124,8 +124,7 @@ menu:
         jump door
 
     "Enter a Code" if door_locked:
-        $ code_entered = input()
-        jump door
+        jump enter_code
 ```
 
 - Each option has visible text and an optional `if <cond>:` clause.
@@ -134,6 +133,41 @@ menu:
 - **Click semantics:** anyone in the channel may click. Each user may click at most once
   per menu showing. The menu stays live for other users until execution leaves the menu
   block via a `jump` in a chosen body. A click runs the chosen body inline.
+- `menu timeout <seconds>:` closes after the duration. If a `timeout:` branch
+  exists, it runs; otherwise execution continues after the menu block.
+
+```
+menu timeout 30:
+    "Ask Jia li for directions":
+        j "Sure, follow me."
+        channel link "Follow her" to "Restroom"
+
+    timeout:
+        j "Nevermind."
+```
+
+## Input block
+
+```
+input "Enter the code on the keypad." into code_entered:
+    case correct_code:
+        n "The lock snaps open."
+        $ door_locked = False
+        jump door
+
+    case _:
+        n "The keypad flashes red."
+        jump door
+```
+
+- Posts the prompt, waits for the next non-bot message in the active channel,
+  stores it in the declared variable, then evaluates cases in order.
+- `case value:` compares the captured text to a literal or variable expression.
+- `case contains "x" or "y":` applies the case-insensitive `contains` operator
+  to the captured text.
+- `case _:` is the default fallback.
+- `input "Prompt" into variable timeout <seconds>:` times out. If `case
+  timeout:` exists, it runs; otherwise execution continues after the input block.
 
 ## Button
 
@@ -179,12 +213,22 @@ clear channel "Restroom"
 
 - Purges all messages in the named channel.
 
+## Channel link
+
+```
+channel link "Return to Great Hall" to "Great Hall"
+```
+
+- Posts a non-blocking button that opens the target channel.
+- Discord does not let bots forcibly switch a user's current channel view; this
+  renders as a link button instead.
+- The target channel is lazy-created if needed.
+
 ## Expression statements
 
 ```
 $ enter_count += 1
 $ door_locked = False
-$ code_entered = input()
 $ kitchen_investigator = username()
 ```
 
@@ -199,7 +243,7 @@ $ kitchen_investigator = username()
   - Parentheses
   - Literals: int, str (double-quoted), `True`, `False`
   - Variable references (must be declared via `default`)
-  - Built-ins: `input()`, `username()`
+  - Built-ins: `input()`, `input("prompt")`, `username()`
 - Anything outside this allowlist (arbitrary calls, attribute access, imports,
   comprehensions, etc.) is rejected at load time.
 
@@ -207,7 +251,7 @@ $ kitchen_investigator = username()
 
 | Name | Blocks? | Returns | Notes |
 |---|---|---|---|
-| `input()` | yes | `str` | Captures the next non-bot message in the active channel. May appear inside a condition (e.g. `if input() contains "x":`); MVP allows one `input()` per expression. |
+| `input(prompt)` | yes | `str` | Posts the optional string prompt, then captures the next non-bot message in the active channel. May appear inside a condition (e.g. `if input("What do you inspect?") contains "x":`); MVP allows one `input()` per expression. |
 | `username()` | no | `str` | Identifier of the user who last clicked a `button`/`menu` option in this event. Empty string if none. |
 
 The built-in set is intentionally minimal and may grow.
