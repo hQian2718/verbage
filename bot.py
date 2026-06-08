@@ -37,7 +37,15 @@ class DialogBot(commands.Bot):
         if guild_id:
             guild = discord.Object(id=int(guild_id))
             self.tree.copy_global_to(guild=guild)
-            await self.tree.sync(guild=guild)
+            try:
+                await self.tree.sync(guild=guild)
+            except discord.Forbidden as exc:
+                raise RuntimeError(
+                    f"Could not sync slash commands to GUILD_ID={guild_id}. "
+                    "Check that this is the target server's guild id, and that "
+                    "the bot application for DISCORD_TOKEN is installed in that "
+                    "server with the applications.commands scope."
+                ) from exc
             logging.info("Synced guild commands for %s", guild_id)
         else:
             await self.tree.sync()

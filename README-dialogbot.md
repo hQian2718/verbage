@@ -18,6 +18,7 @@ DISCORD_TOKEN=...
 GUILD_ID=...
 GAME_CATEGORY_NAME=Dialog Game
 GAME_CHANNEL_TOPIC=Dialog bot game channel
+GAME_DEFAULT_CHANNEL=Game
 ```
 
 Useful optional values:
@@ -88,6 +89,13 @@ Commands are guild-scoped when `GUILD_ID` is set:
 - `/stop`
 - `/reload`
 - `/status`
+
+When moving the bot to another Discord server, update `GUILD_ID` to the target
+server id. If you are using a different Discord application, update
+`DISCORD_TOKEN` too. The bot application for that token must be installed in the
+target server with both `bot` and `applications.commands` scopes; otherwise
+startup will fail while syncing slash commands with Discord error `50001:
+Missing Access`.
 
 Game state is in memory for the MVP.
 

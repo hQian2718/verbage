@@ -19,6 +19,7 @@ from dialogbot.model import (
     LabelRef,
     Menu,
     Run,
+    ShowImage,
     Statement,
     TimeLimit,
     Wait,
@@ -102,7 +103,7 @@ def estimate_statements(
         elif isinstance(statement, Continue):
             notes.append(f"{statement.source.format()}: continue exits a menu; following path depends on the menu.")
             break
-        elif isinstance(statement, (ChannelLink, ClearChannel, ExprStatement, TimeLimit)):
+        elif isinstance(statement, (ChannelLink, ClearChannel, ExprStatement, ShowImage, TimeLimit)):
             continue
         else:
             notes.append(f"{statement.source.format()}: unsupported statement {type(statement).__name__}; stopped.")

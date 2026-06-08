@@ -12,6 +12,7 @@ class GameConfig:
     typing_delay: float
     wait_scale: float
     cleanup_prompt_timeout: float
+    default_channel: str = "Game"
 
     @classmethod
     def from_env(cls) -> "GameConfig":
@@ -22,6 +23,7 @@ class GameConfig:
             typing_delay=float(os.getenv("DIALOG_TYPING_DELAY", "0.5")),
             wait_scale=float(os.getenv("DIALOG_WAIT_SCALE", "1")),
             cleanup_prompt_timeout=float(os.getenv("DIALOG_CLEANUP_TIMEOUT", "120")),
+            default_channel=os.getenv("GAME_DEFAULT_CHANNEL", "Game").strip() or "Game",
         )
 
     def reading_delay_for(self, text: str) -> float:

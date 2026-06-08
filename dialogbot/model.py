@@ -77,6 +77,13 @@ class Dialogue(Statement):
 
 
 @dataclass
+class ShowImage(Statement):
+    source_text: str
+    image_path: Path | None
+    caption: str | None = None
+
+
+@dataclass
 class Jump(Statement):
     target: LabelRef
 
@@ -104,6 +111,7 @@ class Menu(Statement):
     options: list[MenuOption]
     timeout_seconds: float | None = None
     timeout_body: list[Statement] | None = None
+    persistent: bool = False
 
 
 @dataclass

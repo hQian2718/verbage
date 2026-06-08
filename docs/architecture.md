@@ -60,9 +60,9 @@ both adapters, then call the protocol from the runtime.
 `GameManager` stores one active `GameSession` per scope id. In Discord, the
 scope id is the guild id.
 
-`GameSession.start()` creates a root task that enters `main.setup`. The setup
-label usually sets the time limit and `jump`s into the first channel-bound
-label.
+`GameSession.start()` creates a root task that enters `main.setup`. Labels with
+no explicit `channel=` run in `GameConfig.default_channel`, which comes from
+`GAME_DEFAULT_CHANNEL`.
 
 Each running script path has an `EventContext`. A context tracks:
 

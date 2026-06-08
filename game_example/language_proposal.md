@@ -90,6 +90,22 @@ j "Hello, party of $(num_players)?"
   - `$identifier` — shorthand; reads to the end of the identifier.
 - Dialogue is single-line. Between successive lines the bot shows a typing indicator and waits a length-proportional duration (≈30 ms/char, clamped 1.5–6 s; tunable via env var).
 
+## Images
+
+```
+show image "restaurant_front"
+show image "restaurant_front":
+    caption "The restaurant waits under the old willow tree."
+show image "https://example.com/restaurant_front.png"
+```
+
+- Posts an image in the active channel, then continues.
+- Local image names resolve against `game/images/`. `show image "restaurant_front"`
+  checks common extensions such as `.png`, `.jpg`, `.jpeg`, `.gif`, and `.webp`.
+- Exact filenames also work: `show image "restaurant_front.png"`.
+- URL images may use `http://` or `https://`.
+- The optional `caption` line supports normal dialogue interpolation.
+
 ## Jump
 
 ```

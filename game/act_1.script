@@ -1,98 +1,210 @@
+default num_appetizer = 3
 default app_1 = "Vegetarian Goose"
-default app_2 = "Celery Salid"
+default app_2 = "Candied Dates"
+default app_3 = "Crispy Smoked Fish"
+
+default num_mains = 3
+default main_1 = "Borscht"
+default main_2 = "Grilled Prawns"
+default main_3 = "Baked Clams with Cabbage"
 
 label begin(channel="Station"):
-    n "You are on the second floor."
+    n "To get started on your investigation, you should find out everyone's jobs at the Factory."
+    n "You'll be quizzed on this later."
     run (table_1_start, table_2_start, table_3_start)
-    n "Next up is the main course."
+    n "You may discuss in the # Job Quiz channel."
+    channel link "Go to the Quiz" to "Job Quiz"
+    jump quiz_1
 
-label table_1_start(channel="Hibuscus"):
-    yan "Well, you've got to tell us more! What did you find out?"
-    bao "Listen to that! *us*! I'll be the third wheel while you love-doves spill your honey jar in everyone's face."
-    zl  "Wow, Bao, the way you overreact hasn't changed at all!"
-    yan "Enough of that, Zilian. If \'Detective Bao\' changes easily, he wouldn't be on the 7 o'clock news solving cases."
-    bao "I merely assisted the police by answering their questions about the burglar."
-    yan "That's not what the article said! That policeman said he solved the case with your 'enthusiastic and helpful assistance.'"
+default quiz_1_score = 0
+label quiz_1(channel="Job Quiz"):
+    button "Begin the Quiz":
+        n "Let's see how well you can do."
+    n "What is Bao Shang's job?"
+    show image "bao shang"
+    menu timeout 30 seconds:
+        "Security Guard":
+        "Accountant":
+        "Loom Operator":
+        "Designer":
+        timeout:
 
-label table_2_start(channel="Table 2 Name"):
+
+
+label table_1_start(channel="Apple Blossoms"):
+    yan "Well, what did you find out?"
+    bao "So, I still walk around every night at 7:30."
+    bao "That day, when I was making my second left turn, I heard two suspicious voices behind a bush! So I point my flashlight at them, and..."
+    zl "You carry a flashlight on your neighborhood strolls?"
+    zl "🤣🤣🤣!"
+    zl "He, oh, he walks around with a flashlight! Who does that?"
+    bao "💢 Well, as it turns out, it's very useful!"
+    yan "Old habits die hard, Zilian."
+    yan "At the factory, when you would sneak out after curfew to see me, you were caught by Bao on his patrol more than once!"
+    bao "I went easy on you two lovebirds, you remember?"
+    yan "We still appreciate that 🤭"
+    bao "What Zilian did was much more tame than those pesky twins. Those poor chickens!"
+    zl "Oh, this is about the Rooster Fighting and the gambling, right?"
+    bao "I would have broken all 20 of their fingers if they didn't need it for working the loom."
+    bao "Anyways, it was thanks to my flashlight that I caught them!"
+    bao "Factory-issued. They don't make these like they used to."
+    n "Bao shows everyone his flashlight from his pocket. 🔦"
+    zl "‼️ they let you keep it?"
+    bao "I've had it for thirty years. I wasn't going to let them take it away!"
+    yan "I'm starving!"
+    n "Meanwhile, your colleague comes in with a trolley. It has the appetizers you are supposed to serve."
+    bao "Young server, you want to see?"
+    n "Do you take the flashlight or serve the food first?"
+    menu:
+        "Look at the flashlight":
+            n "The flashlight is sturdy. The glass has a crack in the corner, and the metal casing there is slightly dented. It must have hit something there."
+            yan "Bao, come on, don't hold up our dear server. I'm waiting on the food here!"
+            n "She seems a little annoyed."
+            n "You give the flashlight back and go to the food trolly."
+            jump table_1_appetizers
+        "Serve food":
+            jump table_1_appetizers
+
+label table_2_start(channel="Bamboo Forest"):
     min "Your son, he goes to middle school now, right? He must be tall!"
-    gw "Children are like bamboo; they grow taller every day. And yes, he's graduating this spring."
+    gw "Children are like bamboo; they grow taller every day 🌱🌱🌱. And yes, he's graduating this spring."
     min "So soon!"
-    min "Last time I saw him he was still a tiny kid! He was so shy and kept hiding behind you!"
-    gw "In that regard he hasn't changed a bit. He wouldn't even talk to me now; he's holed up in his room all day with the AC on."
+    min "Last time I saw him he was still a tiny kid !⸜(｡˃ ᵕ ˂ )⸝♡ He was so shy and kept hiding behind you!"
+    gw "In that regard he hasn't changed a bit. He wouldn't even talk to me now 😅; he's holed up in his room all day with the AC on."
     ld "He probably talks to people his age!"
     ld "just not with his seniors."
     ld "I never understood the appeal of having kids."
     ld "Little trouble makers."
-    gw "hahaha, to each their own."
+    gw "To each their own."
     
-    ld "Guowei, for your kid's big exam, I've got some incense that will help him focus."
+    ld "Guowei, for your kid's big exam, I've got some incense that will help him focus. ☯︎☯︎☯︎"
     ld "It's really useful! Calms the nerves too."
-    gw "Hahaha, I'm sure it does."
-    n "He's not interested."
-    n "The first appetizer has arrived. Serve it now to interrupt this conversation?"
-
+    gw "I'm sure it does 🙂"
+    n "He's clearly not interested. It's awkward."
+    n "Meanwhile, your colleague comes in with a trolley. It has the appetizers you are supposed to serve. Serve a dish to interrupt this conversation?"
+    
     menu timeout 10 seconds:
         "Yes":
             n "You announce: \'$app_1\'."
             min "I really like this dish!"
             gw  "Let's see whether the restaurant's standards improved since privatization."
             n "The matter of the incense is dropped."
-            continue
         "No":
             n "You listen to the conversation a bit more."
             ld "You can have it for free, old sport!"
-            gw "Master Lu, as a Marxist, I don't really believe this sort of superstition!"
+            gw "Master Lu, as a ✯☭ Marxist ☭✯, I don't really believe this sort of superstition!"
             gw "It wasn't useful back then, and it's not useful now."
             ld "Come on, what happened that time was clearly beyond my powers."
             ld "I tried my best, but there are things even a practitioner like me cannot change."
-            n "There is an awkward silence. 
+            n "There is an awkward silence."
             n "You quickly step in and announce: \'$app_1\'."
             n "All three of them eats in silence, until Guowei rises from his chair."
-            coninue
         timeout:
             n "After a while, Guowei approaches you from his chair."
-            continue
     
     n "He turns to you with a polite smile."
     gw "Young waiter, I would like to express my thanks for your service at our table tonight."
-    gw "We are all colleagues from the Factory's Fifth Unit. We worked together for more than 20 years. I was their political commisar."
+    gw "We are all colleagues from the Factory's Fifth Unit. We worked together for more than 20 years."
+    n "A pause."
+    gw "I was their political commisar."
     menu:
         "Of Course.":
             n "He nods at you."
-            continue
         "What is a political commisar?":
-            gw "Back in the day, every worker at the Factory had a political advisor."
-            gw "I was responsible for the political education of the Fifth Unit."
-            gw "I ensured that everyone understood their work as essential to the success of the Party's socialist state."
-            gw "Knowing the significance of one's labor makes a huge difference."
+            gw "Back in the day, I was responsible for the political education of the Fifth Unit."
+            gw "I ensured that everyone understood their work as essential to the success of ✯☭ the Party's ☭✯ socialist state."
+            gw "Knowing the significance of one's labor completely changes how you do it."
             gw "Of course, now at private companies, you don't talk about that too much."
-            continue
-    
-    gw "By the way, can you get us some green tea to drink?"
-    button "yes":
-        n "You give out three cups and pour the tea."
     
     ld "Waiter, don't let Guowei patronize you!"
     gw "I was only being polite."
     ld "I'll introduce the rest of us old folks!"
-    ld "I'm Lu Da, nowadays I study the msytical art of the I Ching."
-    ld "And this is Min, when we were young, she was known for her beauty throughout the Fifth Unit."
-    min "Oh save it, Master Lu, I wasn't that pretty even when I was young."
+    ld "I'm Lu Da, nowadays I study the mystical art of the I Ching. ☴☲"
+    ld "And this is Min, when we were young, she was known for her beauty throughout the Fifth Unit 😆"
+    min "Oh save it, Master Lu, I wasn't that pretty, even when I was young."
     min "I was tired all the time."
-    min "And I had dye on my face from the job. It was impossible to wash off!"
-    min "Cheng Ji at the other table, now she was pretty."
+    min "And I had dye 🎨 on my face from the job. It was impossible to wash off!"
+    min "Now Cheng Ji at the other table, she was pretty."
     min "And so smart too! How she remembers all the patterns is beyond me."
+    min "We had no computers! She punched holes on paper to program the loom."
+
+    n "It's time to serve the rest of the appetizers."
+    jump table_2_appetizers
 
 
-label table_3_start(channel="Table 3 Name"):
+label table_3_start(channel="Autumn Clouds"):
     cf "Baogen, Mugen! How are you two doing?"
-    bgn "Fong! Hello! Let me tell you something:"
+    bgn "Fong! Hello! Let me tell you some good news:"
     bgn "Last month, my brother just moved in to the unit next to me!"
     cj "Ah, you two have reunited! At the factory you insisted on living in separate dorms."
-    mg "That's back then."
-    bgn  "Now our cousin is threatening to move us into senior homes! This is our answer to her."
+    mg "That was back then."
+    bgn  "Now my daughter is threatening to move us into senior homes! This is our answer to her."
     bgn "Ever since then, I've learned a lot about my brother's dating life!"
     n   "Everyone found this funny."
-    mg  ""
-    cj "Hello"
+    mg  "Come on, server, get us a bottle opener so we can get started!"
+    n   "He pulls out a brown paper bag, which has a big bottle of unbranded liquor."
+    button "Tell them about the Outside Drink Policy":
+        n "Well, no outside drinks are allowed. You tell them that."
+        n "It is not well received. Several people begin shouting at once."
+        cf "Come on, young server, let us have some fun!"
+        mg "We know all about the policy! I can give you a tip to turn an eye."
+        cj "See, young server, the organizers have made a mistake; they put the four alcoholics at the same table! We are just doing what we do."
+        bgn "There's no fun in that. I've never drank since what happened in 87."
+        wait 2
+        n "Everyone speaks more softly now."
+        cf "Sorry to hear that, Baogen. I know you still blame yourself, but it's not your fault!"
+        mg "We all should have stayed at our posts that day."
+        mg "But our nerves were tighted for so long, making that first batch! We all wanted a break!"
+        cj "Even Commisar Liu was slacking off instead of hanging at the library."
+        n "She casts a questioning glance in your direction. Will you let them drink this?"
+    
+    menu:
+        "Call my manager":
+            n "Your manager talks to them apologetically, smiling a professional smile. They put the bottle away, but immediately order drinks."
+        "Hand them a Bottle Opener":
+            cj "Thank you!"
+            n  "She winks."
+        "Let them, but don't help them open it":
+            cj "Thank you!"
+            cj "I know this little trick."
+            n  "She pops off the cap deftly with a metal spoon."
+        "Absolutely not":
+            n "Everyone glares at you. They go order drinks at the counter."
+    
+    bgn  "You guys should wait for the appetizers to get here, at least!"
+    cj  "Don't worry, Mr.Chai, I have some peanuts."
+    mg  "Just like back in the day!"
+    cj  "Now I just get 'em from the shop. Back then, I had to grow my own peanuts!"
+    cf  "Weren't you selling those to us?"
+    cj  "It was my honest labor! and very hard work."
+
+    n   "The appetizers arrived on a trolley, rolled in by one of your colleagues."
+    jump table_3_appetizers
+
+# number of appetizers served per table
+# gates jump to quiz and act II
+default na_1 = 0
+default na_2 = 0
+default na_3 = 0
+
+# what appetizers were served at table 1
+# used to grey out the menu options
+
+default a1_1 = 0
+default a2_1 = 0
+default a3_1 = 0
+label table_1_appetizers(channel="Apple Blossoms"):
+    # 
+    yan "We got side-tracked, Bao. What happened next on your night walk?"
+    bao "Well, turns out they were burglars. They tried to run away, so I subdued them and called the police."
+    yan "Detective Bao is still solving cases 😊!"
+
+default a1_2 = 0
+default a2_2 = 0
+default a3_2 = 0
+label table_2_appetizers(channel="Bamboo Forest"):
+
+default a1_3 = 0
+default a2_3 = 0
+default a3_3 = 0
+label table_3_appetizers(channel="Autumn Clouds"):

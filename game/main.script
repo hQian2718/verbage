@@ -4,12 +4,12 @@ default ready_count = 0
 label setup:
     time limit 15 minutes
     run show_num_player_promot
-    jump act_1.table_1_start
+    # jump act_1.table_1_start
 
 label show_num_player_promot(channel="Settings"):
     n "This game is designed for 2 to 3 players."
     n "You can be in the same room or on a voice call."
-    n "If you are checking it out by yourself, know that it will be almost impossible to succeed, as the game assumes there are multiple players who listen to different conversations and piece together clues."
+    n "You can check it out by yourself, but the game assumes there are multiple players who listen in on different conversations and piece together clues."
     # testing
     $ ready_count = 1
     $ num_players = 1

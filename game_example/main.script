@@ -47,7 +47,7 @@ label extra(channel="Extra"):
 
 label door(channel="Entrance"):
     n "You stand in front of the door."
-    menu:
+    persistent menu:
         "Enter the Restaurant" if not door_locked:
             # Update a game variable
             $ enter_count += 1
