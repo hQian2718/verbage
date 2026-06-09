@@ -1,6 +1,6 @@
-default num_appetizer = 3
+default num_apps = 3
 default app_1 = "Vegetarian Goose"
-default app_2 = "Candied Dates"
+default app_2 = "Candied Lotus Root"
 default app_3 = "Crispy Smoked Fish"
 
 default num_mains = 3
@@ -8,26 +8,146 @@ default main_1 = "Borscht"
 default main_2 = "Grilled Prawns"
 default main_3 = "Baked Clams with Cabbage"
 
-label begin(channel="Station"):
-    n "To get started on your investigation, you should find out everyone's jobs at the Factory."
-    n "You'll be quizzed on this later."
-    run (table_1_start, table_2_start, table_3_start)
+label begin(channel="Meta"):
+    n "You should find out what everyone's jobs were at the Factory."
+    n "You'll be quizzed on this later!!"
     n "You may discuss in the # Job Quiz channel."
     channel link "Go to the Quiz" to "Job Quiz"
+    run (table_1_start, table_2_start, table_3_start)
+    run (table_1_appetizers, table_2_appetizers, table_3_appetizers)
     jump quiz_1
 
-default quiz_1_score = 0
+default score_1 = 0
 label quiz_1(channel="Job Quiz"):
+    n "Select a captain amongst yourselves! Only the captain can answer questions."
+    n "Keep going when you are ready."
     button "Begin the Quiz":
         n "Let's see how well you can do."
-    n "What is Bao Shang's job?"
+    
+    n "What did Bao Shang do at the Factory?"
     show image "bao shang"
     menu timeout 30 seconds:
         "Security Guard":
+            $ score_1 = score_1 + 1
+            n "Correct!"
         "Accountant":
+            n "Incorrect!"
         "Loom Operator":
+            n "Incorrect!"
         "Designer":
+            n "Incorrect!"
         timeout:
+            n "Time's up! No points for this one."
+
+    n "What is Liu Min's job title?"
+    show image "liu min"
+    menu timeout 30 seconds:
+        "Loom Repairman":
+            n "Incorrect!"
+        "Model":
+            n "Incorrect!"
+        "Dye Technician":
+            $ score_1 = score_1 + 1
+            n "Correct!"
+        "Researcher":
+            n "Incorrect!"
+        timeout:
+            n "Time's up! No points for this one."
+
+    n "What is Chai Baogen's job at the Factory?"
+    show image "Chai Baogen"
+    menu timeout 30 seconds:
+        "Political Commissar":
+        "Loom Operator":
+            $ score_1 = score_1 + 1
+            n "Loom Operator is correct!"
+        "Cost Controls":
+        "Warehouse Manager":
+        timeout:
+            n "Time's up! No points for this one."
+    
+    # n "What is Bai Yan's occupation?"
+    # show image "bai yan"
+
+    n "What was Liang Guowei's job title?"
+    show image "liang guowei"
+    menu timeout 30 seconds:
+        "Loom Operator":
+            n "Incorrect!"
+        "Political Commissar":
+            $ score_1 = score_1 + 1
+            n "Political Commissar is correct!"
+        "Security Chief":
+            n "Incorrect!"
+        "Loom Mechanic":
+            n "Incorrect!"
+        timeout:
+            n "Time's up! No points for this one."
+        
+    n "What did Chai Mugen do at the factory?"
+    show image "chai mugen"
+    menu timeout 30 minutes:
+        "Cook":
+            n "Incorrect!"
+        "Postman":
+            n "Incorrect!"
+        "Loom Operator":
+            $ score_1 = score_1 + 1
+            n "Loom operator is correct!"
+        "Security Guard":
+            n "Incorrect!"
+        timeout:
+            n "Time's up! No points for this one."
+    
+    n "What was Bai Zilian's occupation?"
+    show image "bai zilian"
+    menu timeout 30 seconds:
+        "Model, of course":
+            $ score_1 = score_1 + 1
+            n "Correct!"
+        timeout:
+            n "Time's up! No points for this one."
+
+
+    # n "What was Lu Da's old job at the Factory?"
+    # show image "lu da"
+    
+    n "What was Chen Fong doing at the Factory?"
+    show image "Chen Fong"
+    menu timeout 30 seconds:
+        "Floor Manager":
+            n "Incorrect!"
+        "Loom Operator":
+            n "Incorrect!"
+        "Loom Repairs":
+            $ score_1 = score_1 + 1
+            n "Loom repairs is correct!"
+        "Security Guard":
+            n "Incorrect!"
+        timeout:
+            n "Time's up! No points for this one."
+
+    n "What did Cheng Ji do at the Factory?"
+    show image "Cheng Ji"
+    menu timeout 30 seconds:
+        "Punchcard Programmer":
+            $ score_1 = score_1 + 1
+            n "Punchcard programmer is correct!"
+        "Electrician":
+            n "Incorrect!"
+        "Political Commissar":
+            n "Incorrect!"
+        "Cook":
+            n "Incorrect!"
+        timeout:
+            n "Time's up! No points for this one."
+    
+    n "That's it!"
+    n "Your total score is $score_1 out of 8."
+    n "Not too bad!"
+    n "There will be more to this story later."
+    n "Thanks for playing!"
+
 
 
 
@@ -89,6 +209,9 @@ label table_2_start(channel="Bamboo Forest"):
             min "I really like this dish!"
             gw  "Let's see whether the restaurant's standards improved since privatization."
             n "The matter of the incense is dropped."
+            # record state: served app 1 to table 2
+            $ a1_2 = 1
+            $ na_2 = 1
         "No":
             n "You listen to the conversation a bit more."
             ld "You can have it for free, old sport!"
@@ -156,6 +279,7 @@ label table_3_start(channel="Autumn Clouds"):
         mg "We all should have stayed at our posts that day."
         mg "But our nerves were tighted for so long, making that first batch! We all wanted a break!"
         cj "Even Commisar Liu was slacking off instead of hanging at the library."
+        bgn "You guys drink what you want. I'll have some Cola."
         n "She casts a questioning glance in your direction. Will you let them drink this?"
     
     menu:
@@ -189,22 +313,92 @@ default na_3 = 0
 
 # what appetizers were served at table 1
 # used to grey out the menu options
-
 default a1_1 = 0
 default a2_1 = 0
 default a3_1 = 0
 label table_1_appetizers(channel="Apple Blossoms"):
-    # 
-    yan "We got side-tracked, Bao. What happened next on your night walk?"
-    bao "Well, turns out they were burglars. They tried to run away, so I subdued them and called the police."
-    yan "Detective Bao is still solving cases 😊!"
+    menu:
+        "Serve $app_1" if a1_1 == 0:
+            $ a1_1 = 1
+            $ na_1 = na_1 + 1
+            yan "We got side-tracked, Bao. What happened next on your night walk?"
+            bao "Well, turns out they were burglars. They tried to run away, so I subdued them and called the police."
+            yan "Detective Bao is still solving cases 😊!"
+            if na_1 < num_apps:
+                jump table_1_appetizers
+        "Serve $app_2" if a2_1 == 0:
+            $ a2_1 = 1
+            $ na_1 = na_1 + 1
+            zilian "You see Master Lu over there?"
+            yan    "Yeah, he's still pondering his spirituality."
+            bao    "How did that happen anyway? Why did he get into that woo-woo stuff?"
+            zilian "I think it was like this: as Quality Control, he'd be the first person responsible if us at the Fifth Unit delivered any faulty product."
+            zilian "He was so afraid of the consequences that he tried to predict if it would happen."
+            yan    "I think that's how he got started with divination."
+            bao    "I see."
+            if na_1 < num_apps:
+                jump table_1_appetizers
+        "Serve $app_3" if a3_1 == 0:
+            $ a3_1 = 1
+            $ na_1 = na_1 + 1
+            zilian "Wasn't 
+            if na_1 < num_apps:
+                jump table_1_appetizers
+
 
 default a1_2 = 0
 default a2_2 = 0
 default a3_2 = 0
 label table_2_appetizers(channel="Bamboo Forest"):
+    menu:
+        "Serve $app_1" if a1_2 == 0:
+            $ a1_2 = 1
+            $ na_2 = na_2 + 1
+            # text here
+            if na_2 < num_apps:
+                jump table_2_appetizers
+        "Serve $app_2" if a2_2 == 0:
+            $ a2_2 = 1
+            $ na_2 = na_2 + 1
+            if na_2 < num_apps:
+                jump table_2_appetizers
+        "Serve $app_3" if a3_2 == 0:
+            $ a3_2 = 1
+            $ na_2 = na_2 + 1
+            # text here
+            if na_2 < num_apps:
+                jump table_2_appetizers
 
 default a1_3 = 0
 default a2_3 = 0
 default a3_3 = 0
 label table_3_appetizers(channel="Autumn Clouds"):
+    menu:
+        "Serve $app_1" if a1_3 == 0:
+            $ a1_3 = 1
+            $ na_3 = na_3 + 1
+            n "You serve the $app_1."
+            if na_3 < num_apps:
+                jump table_3_appetizers
+        "Serve $app_2" if a2_3 == 0:
+            $ a2_3 = 1
+            $ na_3 = na_3 + 1
+            n "You serve the $app_2."
+            n "Fong holds a piece up for all to see."
+            cf "See, do you know what this reminds me of?"
+            bgn "It's one of Cheng Ji's punchcards!"
+            mg  "I'll give Cheng Ji a toast! Without your work, the loom is just a silly machine!"
+            cf  "With how much that thing needed fixing, we called it 'Flimsy,', no? But I never had to fix 'Flimsy' from a mistake in Cheng Ji's programs."
+            n   "They drink."
+            cj  "I have my teacher to thank. Before her lessons, I had no idea what programming was! I was good at embroidery by hand, but that's not really related to programming patterns on the loom."
+            cj  "I hear it's all done on computers nowadays."
+            n   "After some conversation, you judge that it's time to serve another dish."
+            if na_3 < num_apps:
+                jump table_3_appetizers
+        "Serve $app_3" if a3_3 == 0:
+            $ a3_3 = 1
+            $ na_3 = na_3 + 1
+            n "You serve the $app_3."
+
+            if na_3 < num_apps:
+                jump table_3_appetizers

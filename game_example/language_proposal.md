@@ -146,6 +146,8 @@ menu:
 - Each option has visible text and an optional `if <cond>:` clause.
 - Options whose condition is false at display time are omitted entirely.
 - Renders as Discord buttons in the active channel.
+- Option text supports normal interpolation, e.g. `"Serve $dish"` or
+  `"Talk to $(npc_name)"`.
 - **Click semantics:** anyone in the channel may click. Each user may click at most once
   per menu showing. The menu stays live for other users until execution leaves the menu
   block via a `jump` in a chosen body. A click runs the chosen body inline.

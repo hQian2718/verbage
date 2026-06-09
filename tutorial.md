@@ -143,6 +143,17 @@ label door(channel="Entrance"):
 
 A regular `menu:` waits for one click. After the chosen option finishes, the story continues after the menu unless that option uses `jump`.
 
+Menu option text can use variables, just like dialogue:
+
+```text
+default dish = "Vegetarian Goose"
+
+label table(channel="Dining Room"):
+    menu:
+        "Serve $dish":
+            n "You carry out the $dish."
+```
+
 Suggested image: place a screenshot after this menu example showing the two Discord buttons.
 
 Alt text: A Discord message contains two clickable buttons labeled "Enter a code" and "Walk away" below the narrator text "The keypad glows blue."

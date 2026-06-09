@@ -582,6 +582,60 @@ label start(channel="Room"):
                 [(event["kind"], event["text"]) for event in io.events],
             )
 
+    async def test_menu_option_text_interpolates_variables(self):
+        script = '''
+default dish = "Vegetarian Goose"
+default npc_name = "Jia Li"
+default picked = False
+
+label setup:
+    jump start
+
+label start(channel="Room"):
+    menu:
+        "Serve $dish":
+            $ picked = True
+        "Talk to $(npc_name)":
+            $ picked = True
+'''
+        with TemporaryDirectory() as raw_dir:
+            root = Path(raw_dir)
+            game_dir = root / "game"
+            output_dir = root / "out"
+            game_dir.mkdir()
+            (game_dir / "main.script").write_text(script)
+
+            game = load_game(game_dir)
+            io = LocalDialogIO(output_dir)
+            io.queue_menu("Room", 0, "Alice", "alice")
+            session = GameSession(io, game)
+
+            await session.run_root()
+
+            self.assertTrue(session.variables["picked"])
+            self.assertIn(
+                ("menu", "0:Serve Vegetarian Goose | 1:Talk to Jia Li"),
+                [(event["kind"], event["text"]) for event in io.events],
+            )
+
+    def test_menu_option_text_validates_interpolation(self):
+        script = '''
+label setup:
+    menu:
+        "Serve $missing":
+            "Done."
+'''
+        with TemporaryDirectory() as raw_dir:
+            root = Path(raw_dir)
+            game_dir = root / "game"
+            game_dir.mkdir()
+            (game_dir / "main.script").write_text(script)
+
+            with self.assertRaises(ScriptLoadError) as raised:
+                load_game(game_dir)
+
+            self.assertIn("unknown variable missing", str(raised.exception))
+
     async def test_persistent_menu_keeps_waiting_after_option_without_continue(self):
         script = '''
 default clicks = 0

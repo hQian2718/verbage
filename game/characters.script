@@ -1,6 +1,7 @@
 define n = Character(
     "Narrator",
-    color="#a48335"
+    color="#a48335",
+    image="logo"
 )
 define m = Character(
     "Manager",

@@ -3,20 +3,23 @@ default ready_count = 0
 
 label setup:
     time limit 15 minutes
-    run show_num_player_promot
+    # jump act_1.begin
+    jump act_1.quiz_1
+    # jump show_num_player_promot
     # jump act_1.table_1_start
 
-label show_num_player_promot(channel="Settings"):
+label show_num_player_promot(channel="Meta"):
     n "This game is designed for 2 to 3 players."
-    n "You can be in the same room or on a voice call."
-    n "You can check it out by yourself, but the game assumes there are multiple players who listen in on different conversations and piece together clues."
+    n "You may want to communicate with others or write things down."
+    n "In that case, feel free to do so in any way you want."
+    n "You can also check out the dialog by yourself. But it would be hard to 'win' alone; the game expects multiple players who will split themselves up and listen to different ongoing conversations."
     # testing
-    $ ready_count = 1
-    $ num_players = 1
-    jump act_1.begin
-    # jump get_num_players
+    # $ ready_count = 1
+    # $ num_players = 1
+    # jump act_1.begin
+    jump get_num_players
 
-label get_num_players(channel="Settings"):
+label get_num_players(channel="Meta"):
     input "Please tell me the number of players. Just the arabic number please." into num_players:
         case "1":
             $ num_players = 1
@@ -26,8 +29,23 @@ label get_num_players(channel="Settings"):
             $ num_players = 3
         case _:
             jump get_num_players 
-        
-label start(channel="Botanical Gardens"):
+    button "Continue?":
+
+    jump start
+
+label start(channel="Meta"):
+    n "The hanging red banner says:"
+    n "New Journey, Original Mission - Celebrating 50 years of Silk Manufacturing"
+    n "1953 - 2003"
+
+    m "Make no mistake!"
+    m "This is an easy job; you will each be assigned to one table at this banquet."
+    m "Your tables have a bunch of seniors who retired from the Factory a while ago!"
+    m "Just humor them if they try to talk to you. As waiters, you should try to make the customers happy. "
+    m "Go to your shifts!"
+    jump ask_all_ready
+
+label bomb_start(channel="Botanical Gardens"):
     m "So I'll say it again:"
     wait 5
     m "Your performance tonight is very important."
@@ -80,8 +98,8 @@ label start(channel="Botanical Gardens"):
     n "More guests arrive and get seated. Are you ready to start playing?"    
     jump ask_all_ready
 
-label ask_all_ready(channel="Botanical Gardens"):
-    menu:
+label ask_all_ready(channel="Meta"):
+    persistent menu:
         "Start the Game":
             # Update a game variable
             $ ready_count += 1

@@ -606,6 +606,7 @@ def validate_statements(
                 if statement.timeout_body and statement.timeout_seconds is None:
                     errors.append(f"{statement.source.format()}: menu timeout branch requires menu timeout")
                 for option in statement.options:
+                    validate_interpolation(option.text, game.defaults)
                     if option.condition:
                         validate_condition(option.condition, game.defaults)
                     errors.extend(validate_statements(game, label, option.body, allow_continue=True))
