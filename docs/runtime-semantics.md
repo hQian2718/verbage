@@ -80,6 +80,8 @@ once when the menu is opened. A regular menu behaves like a Ren'Py menu: after
 the clicked option body finishes without jumping, execution continues after the
 menu block. Menu option text uses the same interpolation syntax as dialogue, so
 `"Serve $dish"` renders with the current value of `dish`.
+If every option is hidden by its condition, the runtime logs a debug message and
+continues after the menu block.
 
 When a user clicks an option:
 

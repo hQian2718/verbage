@@ -444,7 +444,12 @@ class GameSession:
             if option.condition is None or await eval_condition(option.condition, context):
                 visible.append(MenuChoice(index, await self.interpolate(option.text, context)))
         if not visible:
-            raise RuntimeErrorWithContext("menu has no visible options")
+            LOGGER.debug(
+                "Skipping menu with no visible options at %s in channel %s",
+                statement.source.format(),
+                context.channel_name,
+            )
+            return
         handle = await self.io.open_menu(context.channel_name, visible)
         try:
             while True:

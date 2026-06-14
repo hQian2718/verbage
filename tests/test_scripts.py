@@ -676,6 +676,42 @@ label done(channel="Room"):
                 [event["kind"] for event in io.events if event["kind"].startswith("menu")],
             )
 
+    async def test_menu_with_no_visible_options_logs_and_continues(self):
+        script = '''
+default door_locked = False
+default after_menu = False
+
+label setup:
+    jump start
+
+label start(channel="Room"):
+    menu:
+        "Enter a code" if door_locked:
+            "Hidden."
+    $ after_menu = True
+    "After."
+'''
+        with TemporaryDirectory() as raw_dir:
+            root = Path(raw_dir)
+            game_dir = root / "game"
+            output_dir = root / "out"
+            game_dir.mkdir()
+            (game_dir / "main.script").write_text(script)
+
+            game = load_game(game_dir)
+            io = LocalDialogIO(output_dir)
+            session = GameSession(io, game)
+            session.min_delay = 0
+            session.max_delay = 0
+
+            with self.assertLogs("dialogbot.runtime", level="DEBUG") as logs:
+                await session.run_root()
+
+            self.assertTrue(session.variables["after_menu"])
+            self.assertNotIn("menu", [event["kind"] for event in io.events])
+            self.assertIn(("narration", "After."), [(event["kind"], event["text"]) for event in io.events])
+            self.assertIn("Skipping menu with no visible options", "\n".join(logs.output))
+
     def test_continue_outside_menu_is_invalid(self):
         script = '''
 label setup:

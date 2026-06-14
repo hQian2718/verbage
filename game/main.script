@@ -4,8 +4,8 @@ default ready_count = 0
 label setup:
     time limit 15 minutes
     # jump act_1.begin
-    jump act_1.quiz_1
-    # jump show_num_player_promot
+    # jump act_1.quiz_1
+    jump show_num_player_promot
     # jump act_1.table_1_start
 
 label show_num_player_promot(channel="Meta"):

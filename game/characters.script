@@ -20,14 +20,14 @@ define bao = Character(
 # 白燕
 define yan = Character(
     "Bai Yan",
-    color="#609400",
+    color="#0034d1",
     image="bai yan"
 )
-# 白梓莲
+# 平梓莲
 define zl = Character(
-    "Bai Zilian",
+    "Ping Zilian",
     color="#d2007a",
-    image="bai zilian"
+    image="ping zilian"
 )
 # 鲁达
 define ld = Character(
@@ -48,10 +48,10 @@ define gw = Character(
     image="liang guowei"
 )
 # 陈芳
-define cf = Character(
-    "Chen Fong",
+define jf = Character(
+    "Jin Fong",
     color="#da6200",
-    image="chen fong"
+    image="jin fong"
 )
 # 柴木根
 define mg = Character(
@@ -68,6 +68,6 @@ define bgn = Character(
 # 程继
 define cj = Character(
     "Cheng Ji",
-    color="#0034d1",
+    color="#609400",
     image="cheng ji"
 )
