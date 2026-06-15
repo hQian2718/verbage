@@ -1,11 +1,25 @@
+tutorial.md
 ## What Is Verbage?
 
-Verbage is a Discord bot for telling interactive stories and running small games in a Discord server. Players read scenes, click choices, type responses, split into different channels, and change what happens.
+Verbage is a Discord bot for telling interactive stories and running small games in a Discord server. Players can read dialog, but they can also make choices, type responses to NPCs, and make the story their own. 
 
-If you have used Twine or Ren'Py, the idea will feel familiar: you write a script, Verbage checks it, and a player starts it with `/start`.
+If you have used Twine or Ren'Py, the idea will feel familiar: you write a script, Verbage checks it, and a player starts it with `/start`. However, Verbage does a couple of unique things.
 
+- Unlike most visual novels or hypertext stories, Verbage lets you write for multiple players.
+- Multiple scenes can happen at the same time, in multiple text channels.
+- After the players finish the story, their path through the tale is saved and can be viewed later.
+
+If this intrigues you, you should use Verbage!
+
+[[]]
 [[Quickstart to Verbage#The Syntax of Verbage|Show me how to write a script!]]
 [[Quickstart to Verbage#Deploying and Running the Game|How do I play the story I created?]]
+
+## Getting Started
+As the game maker, you should download the code of Verbage. You can get it here:
+
+(Github link)
+(Itch.io link)
 
 ## The Syntax of Verbage
 
@@ -18,44 +32,17 @@ label setup:
     "You stand outside a restaurant."
 ```
 
-When someone runs `/start`, Verbage looks for `label setup:` in `main.script` and begins there. The indented lines under a label are the scene. Indentation matters: anything inside the label should be indented with spaces.
+The indented lines under a label are the scene. Indentation matters: all the dialog and game logic inside the label should be indented with spaces; this tells Verbage they are part of this label.
+
+The label "setup" is special. When placed in the main script (which must be titled main.script), Berbage will always start the game by running 'setup'.
+
+Here's what this minimal story looks like in Discord. Players start the game by typing a **slash command** in Discord: `/start`.
 
 Suggested image: place a screenshot immediately after this paragraph showing the script beside the Discord output.
 
 Alt text: A code editor shows `label setup:` with one narrator line. Next to it, a Discord channel shows a Narrator message saying "You stand outside a restaurant."
 
-### Defining Your Characters
-
-Characters are the voices in your game. You define a character once, then use the short name on the left whenever that character speaks.
-
-```text
-define jia = Character(
-    "Jia Li",
-    color="#b16399",
-    image="jiali",
-)
-
-label setup:
-    jia "Welcome. Your table is almost ready."
-```
-
-In Discord, `"Jia Li"` is the display name. The script name `jia` is only for you. The `image` value is optional; if you include it, Verbage looks for an image such as `game/images/jiali.png` or `game/images/jiali.jpg` and uses it as the character's avatar.
-
-Suggested image: place a screenshot after this explanation showing character dialogue with a custom avatar.
-
-Alt text: A Discord message appears from Jia Li with a custom profile image. The message says, "Welcome. Your table is almost ready."
-
-You can also define a narrator:
-
-```text
-define n = Character(
-    "Narrator",
-    color="#a48335",
-)
-
-label setup:
-    n "Rain taps against the restaurant windows."
-```
+You can make a story entirely in the setup label! However, it may be easier to separate the story into managable chunks and give each their own label. 
 
 ### Organizing Your Files
 
@@ -85,47 +72,94 @@ Suggested image: place a file-tree screenshot after the directory example.
 
 Alt text: A project file tree shows a `game` folder containing `main.script`, `characters.script`, `act_1.script`, and an `images` folder with character images.
 
-### Writing Scenes With Labels
 
-Labels are named sections of story. Use them for scenes, rooms, chapters, repeated interactions, and places players can jump back to.
+### Defining Your Characters
+
+You can make Verbage portray many NPCs by defining characters. This changes the default appearance of the avatar and display name associated with the lines.
+
+You only need to define a character once. After that, you may use the short name on the left whenever that character speaks.
+
+Using a character looks like this.
+
+```text
+define jia = Character(
+    "Jia Li",
+    color="#b16399",
+    image="jiali",
+)
+
+label setup:
+    jia "Welcome. Your table is almost ready."
+```
+
+In Discord, `"Jia Li"` is the display name. The script name `jia` is a shorthand for your use while writing the script. The `image` value is optional; if you include it, Verbage looks for an image named "jiali" in the game's images folder, such as `game/images/jiali.png` or `game/images/jiali.jpg`. It will be used as the character's avatar.
+
+Suggested image: place a screenshot after this explanation showing character dialogue with a custom avatar.
+
+Alt text: A Discord message appears from Jia Li with a custom profile image. The message says, "Welcome. Your table is almost ready."
+
+As an example of a second character, let's define a narrator:
+
+```text
+define n = Character(
+    "Narrator",
+    color="#a48335",
+)
+
+label setup:
+    n "Rain taps against the restaurant windows."
+    jia "Welcome, how many people in your party?"
+```
+
+### Writing with Labels abd Jumps
+
+Labels are named sections of story. Use them for scenes, rooms, chapters, and repeated interactions.
+
+Besides being an organizational tool, labels let your stories branch off by enabling `jump` commands. Look at this example where the story jumps forward:
 
 ```text
 label setup:
     jump entrance
 
 label entrance(channel="Entrance"):
-    n "You stand outside a locked restaurant."
+    n "You stand outside a locked door."
     jump door
 
 label door(channel="Entrance"):
     n "There is a keypad beside the door."
 ```
 
-`jump` moves the story to another label and does not come back. Think of it as "go to the next scene."
+In this case, `jump` moves the story to another label and does not come back. Think of it as "go to the next scene."
 
-The optional `channel="Entrance"` tells Verbage where this label should happen in Discord. If the Discord channel does not exist, Verbage creates it. If you leave out `channel=`, the label uses the default channel from your `.env` file.
+The `channel="Entrance"` is a parameter that tells Verbage where this label should be played out in Discord. If the Discord channel does not exist yet, Verbage will create it. If you leave out `channel=`, the label uses the default channel, which you can also configure by going to the ".env" file. 
 
 Suggested image: place a screenshot here showing the automatically created `Entrance` channel.
 
 Alt text: A Discord sidebar shows a game category with an `Entrance` text channel. The channel contains narrator messages from the entrance and door labels.
 
-You can write bare narration without a character:
+`jump` can also jump back, letting you reuse earlier sections. This example shows a door that won't open.
 
 ```text
-"The lock clicks."
+label setup:
+    jump entrance
+
+label entrance(channel="Entrance"):
+    n "You stand outside a locked door."
+    jump door
+    # this jumps forward
+
+label door(channel="Entrance"):
+    n "You try the door, but it won't open."
+    wait 5
+    jump entrance
+    # this jumps back
 ```
-
-You can pause the current scene:
-
-```text
-wait 5
-```
-
-That waits five seconds. Other scenes running at the same time keep going.
 
 ### Showing Choices With Menus
 
-Use a `menu:` when players should choose between options. Each option appears as a Discord button.
+To present options to players, use a `menu:` when players should make a choice. Each option will appear in Discord as a button.
+
+Suppose later in the restaurant, the players encounter a locked door they can investigate. Here's how you can use menus to ask players to choose:
 
 ```text
 label door(channel="Entrance"):
@@ -141,18 +175,7 @@ label door(channel="Entrance"):
     n "The night feels colder now."
 ```
 
-A regular `menu:` waits for one click. After the chosen option finishes, the story continues after the menu unless that option uses `jump`.
-
-Menu option text can use variables, just like dialogue:
-
-```text
-default dish = "Vegetarian Goose"
-
-label table(channel="Dining Room"):
-    menu:
-        "Serve $dish":
-            n "You carry out the $dish."
-```
+As soon as one player clicks a button, the chosen option will run any commands inside it. The story continues after the menu unless that option uses `jump`.
 
 Suggested image: place a screenshot after this menu example showing the two Discord buttons.
 
@@ -166,19 +189,106 @@ default door_locked = True
 label door(channel="Entrance"):
     menu:
         "Open the door" if not door_locked:
-            n "You enter the restaurant."
+            n "You enter the restaurant's basement."
 
         "Enter a code" if door_locked:
             jump enter_code
 ```
 
-At first, only "Enter a code" appears because `door_locked` is `True`. After the story sets `door_locked` to `False`, "Open the door" can appear instead.
+At first, only "Enter a code" appears because  is `True`. After the story sets `door_locked` to `False`, "Open the door" can appear instead.
 
 Suggested image: place a before-and-after image here: first the locked-door menu, then the unlocked-door menu.
 
 Alt text: Two Discord screenshots are shown side by side. The first shows only an "Enter a code" button. The second, after the lock opens, shows an "Open the door" button.
 
-Timed menus are useful when hesitation matters:
+Jumps in menu options lets you branch stories, but using a variable like `door_locked` lets you remember a player choice and change the story based on that later! Let's learn how to use them.
+
+### Remebering Story State
+
+Variables remember what has happened. Declare them with default before using them.
+```
+default clues_found = 0
+default secret_door_locked = True
+default suspect_name = ""
+```
+
+Use `$` lines to change variables:
+
+```
+$ clues_found += 1
+$ secret_door_locked = False
+$ suspect_name = "Jia Li"
+```
+
+Use if, elif, and else to branch:
+
+```text
+label report(channel="Great Hall"):
+    if clues_found >= 3:
+        n "You have enough evidence to accuse someone."
+        jump accusation
+    elif clues_found > 0:
+        n "You have a theory, but not enough proof."
+    else:
+        n "You are still completely in the dark."
+```
+
+You can place if blocks inside labels, menus, buttons, and input cases.
+Suggested image: place a diagram or screenshot here showing the same scene producing different text depending on clues_found.
+Alt text: Three possible Discord outputs are shown for the report scene: no clues, some clues, and enough clues to accuse someone.
+
+### Showing Images
+
+Verbage can send more than text. You can already link to websites, images, and videos with Discord's link syntax:
+
+
+Alternatively, you can use `show image` to post a picture into the current Discord channel. Verbage posts the image as a message and then continues.
+
+```text
+label restaurant_front(channel="Entrance"):
+    show image "restaurant_front":
+        caption "The restaurant waits under the old willow tree."
+```
+
+Put local image files in `game/images`. For `show image "restaurant_front"`,
+Verbage looks for files such as `restaurant_front.png`,
+`restaurant_front.jpg`, and `restaurant_front.webp`. You can also show an image
+by URL:
+
+```text
+show image "https://example.com/restaurant_front.png"
+```
+
+Suggested image: place a screenshot here showing a local image posted in a
+Discord channel with its caption.
+
+Alt text: A Discord channel shows a large image of a restaurant exterior. Above
+or beside it, the caption reads, "The restaurant waits under the old willow
+tree."
+
+### Breaktime!
+
+With dialog, characters, menus, jumps, variables, and images, you can already tell interesting stories! Many visual novels can be written with only these features.
+
+If you are new to Verbage, I would recommend familiarizing yourself with these building blocks. Maybe write a small scene or story first or take a break in your learning experience!
+ 
+If you want to do more unique things with Verbage, check out the additional features below.
+
+
+### Waiting 
+
+Dialog in Verbage is automatically paced so that players have enough time to read each line as they appear. However, you can add additional pauses by this simple "wait" command: 
+
+```text
+wait 5
+```
+
+This waits five seconds.
+
+
+### Timed Menus
+
+You can force the players to pick an option quickly (or else!). The menu itself won't show how much time remains; but you can tell the players about the time limit before it appears.
 
 ```text
 label overhear(channel="Dining Room"):
@@ -193,7 +303,7 @@ label overhear(channel="Dining Room"):
             n "The moment passes."
 ```
 
-If nobody clicks within 20 seconds, the `timeout:` branch runs.
+In this example, if no one clicks within 20 seconds, the `timeout:` branch runs.
 
 Suggested image: place a screenshot here showing a timed menu after it has expired.
 
@@ -246,43 +356,6 @@ Suggested image: place a screenshot after this example showing a natural-languag
 
 Alt text: A player types "I look behind the portrait." The bot recognizes the word "portrait" and replies, "You find a hidden button behind the frame."
 
-### Remembering Story State
-
-Variables remember what has happened. Declare them with `default` before using them.
-
-```text
-default clues_found = 0
-default secret_door_locked = True
-default suspect_name = ""
-```
-
-Use `$` lines to change variables:
-
-```text
-$ clues_found += 1
-$ secret_door_locked = False
-$ suspect_name = "Jia Li"
-```
-
-Use `if`, `elif`, and `else` to branch:
-
-```text
-label report(channel="Great Hall"):
-    if clues_found >= 3:
-        n "You have enough evidence to accuse someone."
-        jump accusation
-    elif clues_found > 0:
-        n "You have a theory, but not enough proof."
-    else:
-        n "You are still completely in the dark."
-```
-
-You can place `if` blocks inside labels, menus, buttons, and input cases.
-
-Suggested image: place a diagram or screenshot here showing the same scene producing different text depending on `clues_found`.
-
-Alt text: Three possible Discord outputs are shown for the report scene: no clues, some clues, and enough clues to accuse someone.
-
 ### Using Persistent Menus For Multiplayer Moments
 
 A normal `menu:` is for one decision. A `persistent menu:` stays open after a player clicks, which is useful when several players need to participate.
@@ -333,9 +406,9 @@ Suggested image: place a screenshot here showing a persistent menu that timed ou
 
 Alt text: The persistent menu buttons are disabled, and the narrator says, "The door slams shut."
 
-### Running Scenes In Multiple Channels
+### Running Stories In Multiple Channels
 
-Discord lets your story happen in several channels at once. `run` starts one or more labels and waits until all of them finish.
+Verbage lets your story happen in several channels at once. `run` starts one or more labels and waits until all of them finish.
 
 ```text
 label enter_restaurant(channel="Great Hall"):
@@ -377,32 +450,6 @@ Alt text: The Great Hall channel shows the setup message, then later a message s
 ### Additional Features
 
 These smaller tools are handy once your story is moving.
-
-Use `show image` to post a picture into the current Discord channel. This is
-inspired by Ren'Py's `show` statement, but Verbage keeps the first version
-simple: it posts the image as a message and then continues.
-
-```text
-label restaurant_front(channel="Entrance"):
-    show image "restaurant_front":
-        caption "The restaurant waits under the old willow tree."
-```
-
-Put local image files in `game/images`. For `show image "restaurant_front"`,
-Verbage looks for files such as `restaurant_front.png`,
-`restaurant_front.jpg`, and `restaurant_front.webp`. You can also show an image
-by URL:
-
-```text
-show image "https://example.com/restaurant_front.png"
-```
-
-Suggested image: place a screenshot here showing a local image posted in a
-Discord channel with its caption.
-
-Alt text: A Discord channel shows a large image of a restaurant exterior. Above
-or beside it, the caption reads, "The restaurant waits under the old willow
-tree."
 
 A `button` is a one-option gate. The story waits until someone clicks it, then continues:
 
