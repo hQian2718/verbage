@@ -8,16 +8,16 @@ file in `game/` and starts at `main.setup`.
 ```sh
 python3 -m venv .venv
 . .venv/bin/activate
-pip install -r requirements.txt
+pip install -e .
 ```
 
 Create `.env` values:
 
 ```sh
 DISCORD_TOKEN=...
-GUILD_ID=...
 GAME_CATEGORY_NAME=Dialog Game
 GAME_CHANNEL_TOPIC=Dialog bot game channel
+GAME_DEFAULT_CHANNEL=Game
 ```
 
 Useful optional values:
@@ -29,6 +29,7 @@ DIALOG_TYPING_DELAY=0.5
 DIALOG_MESSAGE_TIMESTAMPS=0
 DISCORD_RETRY_ATTEMPTS=4
 DISCORD_RETRY_BASE_DELAY=1
+DEV_GUILD_ID=
 ```
 
 The bot needs these Discord permissions:
@@ -40,6 +41,9 @@ The bot needs these Discord permissions:
 - Manage Messages, for `clear channel`
 
 Enable Message Content Intent in the Discord Developer Portal for `input()`.
+Invite the bot with both the `bot` and `applications.commands` scopes. The
+installed bot needs the permissions listed above in every server where it will
+run.
 
 If character dialogue falls back to regular bot messages with a `Missing
 Permissions` warning, check the bot's effective permissions in the game category
@@ -82,14 +86,60 @@ This sets `DIALOG_MESSAGE_TIMESTAMPS=1` for the process. It stamps normal
 messages, webhook character dialogue, prompts, and the otherwise-empty
 button/menu/link messages.
 
-Commands are guild-scoped when `GUILD_ID` is set:
+Commands are registered globally by default, so the same running bot can be
+installed in multiple Discord servers:
 
 - `/start`
 - `/stop`
 - `/reload`
 - `/status`
 
+Global command updates can take time to appear in Discord. For fast smoke tests
+in one development server, set `DEV_GUILD_ID` to that server id. When
+`DEV_GUILD_ID` is set, command sync is limited to that one server for the
+current bot process. Leave it blank or unset in production.
+
 Game state is in memory for the MVP.
+
+Each server gets its own active game session. A restart drops in-memory sessions
+for all servers, but existing Discord channels and transcripts remain.
+
+## Deploy on AWS Lightsail
+
+Create an Ubuntu Lightsail instance, clone the repo, install dependencies, and
+run the bot under `systemd`:
+
+```sh
+sudo apt update
+sudo apt install -y git python3 python3-venv
+sudo git clone <repo-url> /opt/dialog-bot
+sudo chown -R ubuntu:ubuntu /opt/dialog-bot
+cd /opt/dialog-bot
+python3 -m venv .venv
+.venv/bin/pip install -e .
+cp .env.example .env
+nano .env
+.venv/bin/python check.py
+```
+
+Copy `deploy/dialog-bot.service` to `/etc/systemd/system/dialog-bot.service`:
+
+```sh
+sudo cp deploy/dialog-bot.service /etc/systemd/system/dialog-bot.service
+```
+
+If the repo is not installed at `/opt/dialog-bot`, update `WorkingDirectory`,
+`EnvironmentFile`, and `ExecStart` in the service file.
+
+```sh
+sudo systemctl daemon-reload
+sudo systemctl enable dialog-bot
+deploy/deploy.sh
+journalctl -u dialog-bot -f
+```
+
+The bot only needs outbound network access to Discord; no public inbound
+application port is required.
 
 When a game finishes normally or is stopped with `/stop`, the bot posts a final
 cleanup menu in the last story channel. Choosing **Delete game channels**

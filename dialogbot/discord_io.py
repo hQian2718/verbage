@@ -7,6 +7,7 @@ import re
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from datetime import datetime
+from pathlib import Path
 from typing import TypeVar
 
 import discord
@@ -88,6 +89,22 @@ class DiscordDialogIO:
         except discord.HTTPException:
             LOGGER.exception("Webhook send failed in #%s (%s)", channel.name, channel.id)
             await self.send_character_fallback(channel, character, text)
+
+    async def send_image(self, channel_name: str, source: str, image_path: Path | None, caption: str | None = None) -> None:
+        channel = await self.get_or_create_channel(channel_name)
+        if image_path:
+            content = self.with_timestamp(caption) if caption else self.timestamp_only()
+            await self.retry_discord_call(
+                f"send image {image_path.name!r} to #{channel.name}",
+                lambda: channel.send(content=content, file=discord.File(image_path)),
+            )
+            return
+
+        content = f"{caption}\n{source}" if caption else source
+        await self.retry_discord_call(
+            f"send image URL to #{channel.name}",
+            lambda: channel.send(self.with_timestamp(content)),
+        )
 
     async def send_channel_link(self, channel_name: str, label: str, target_channel_name: str) -> None:
         channel = await self.get_or_create_channel(channel_name)

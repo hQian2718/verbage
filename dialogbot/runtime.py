@@ -26,6 +26,7 @@ from .model import (
     Menu,
     Run,
     ScriptGame,
+    ShowImage,
     Statement,
     TimeLimit,
     Wait,
@@ -241,7 +242,7 @@ class GameSession:
     async def run_label(self, context: EventContext, label: Label) -> None:
         while True:
             context.namespace = label.namespace
-            await self.bind_channel(context, label.channel)
+            await self.bind_channel(context, self.channel_for_label(label))
             try:
                 await self.execute_block(context, label.body)
                 await self.flush_pending_dialogue_delay(context)
@@ -251,6 +252,9 @@ class GameSession:
                 # jump never returns to the old label; it rebinds this same event
                 # to the target label and continues from the top of that body.
                 label = resolve_label(self.game, context.namespace, jump.target)
+
+    def channel_for_label(self, label: Label) -> str:
+        return label.channel or self.config.default_channel.strip() or "Game"
 
     async def bind_channel(self, context: EventContext, channel_name: str | None) -> None:
         if context.channel_name == channel_name:
@@ -300,6 +304,8 @@ class GameSession:
     async def execute_statement(self, context: EventContext, statement: Statement) -> None:
         if isinstance(statement, Dialogue):
             await self.send_dialogue(context, statement)
+        elif isinstance(statement, ShowImage):
+            await self.send_image(context, statement)
         elif isinstance(statement, Jump):
             raise JumpSignal(statement.target)
         elif isinstance(statement, Continue):
@@ -370,6 +376,9 @@ class GameSession:
             raise RuntimeErrorWithContext("dialogue emitted before entering a channel")
         text = await self.interpolate(statement.text, context)
         delay = min(self.max_delay, max(self.min_delay, len(text) * self.delay_per_char))
+        if not text.strip():
+            context.pending_dialogue_delay = delay
+            return
         await self.io.typing_pause(context.channel_name, self.typing_delay)
         if not statement.character:
             await self.io.send_narration(context.channel_name, text)
@@ -378,6 +387,12 @@ class GameSession:
         character = self.game.characters[statement.character]
         await self.io.send_character_dialogue(context.channel_name, character, text)
         context.pending_dialogue_delay = delay
+
+    async def send_image(self, context: EventContext, statement: ShowImage) -> None:
+        if not context.channel_name:
+            raise RuntimeErrorWithContext("image emitted before entering a channel")
+        caption = await self.interpolate(statement.caption, context) if statement.caption else None
+        await self.io.send_image(context.channel_name, statement.source_text, statement.image_path, caption)
 
     async def send_channel_link(self, context: EventContext, statement: ChannelLink) -> None:
         if not context.channel_name:
@@ -427,9 +442,14 @@ class GameSession:
         visible = []
         for index, option in enumerate(statement.options):
             if option.condition is None or await eval_condition(option.condition, context):
-                visible.append(MenuChoice(index, option.text))
+                visible.append(MenuChoice(index, await self.interpolate(option.text, context)))
         if not visible:
-            raise RuntimeErrorWithContext("menu has no visible options")
+            LOGGER.debug(
+                "Skipping menu with no visible options at %s in channel %s",
+                statement.source.format(),
+                context.channel_name,
+            )
+            return
         handle = await self.io.open_menu(context.channel_name, visible)
         try:
             while True:
@@ -448,14 +468,14 @@ class GameSession:
                 context.last_click_user = action
                 option = statement.options[index]
                 try:
-                    # Menu choices execute inline. If the body does not jump,
-                    # the menu remains live for other users to click.
                     await self.execute_block(context, option.body)
                     await self.flush_pending_dialogue_delay(context)
                 except JumpSignal:
                     raise
                 except ContinueSignal:
                     await self.flush_pending_dialogue_delay(context)
+                    return
+                if not statement.persistent:
                     return
         finally:
             await self.io.close_menu(handle)

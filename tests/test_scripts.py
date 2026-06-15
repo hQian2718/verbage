@@ -5,6 +5,7 @@ import unittest
 from tempfile import TemporaryDirectory
 from pathlib import Path
 
+from dialogbot.config import GameConfig
 from dialogbot.expressions import eval_condition, validate_condition
 from dialogbot.local_io import LocalDialogIO
 from dialogbot.parser import ScriptLoadError, load_game
@@ -43,7 +44,9 @@ class ScriptTests(unittest.IsolatedAsyncioTestCase):
     def test_sample_scripts_load(self):
         game = load_game("game")
         self.assertIn(("main", "setup"), game.labels)
-        self.assertIn(("interior", "restroom_2"), game.labels)
+        self.assertIn(("main", "ask_all_ready"), game.labels)
+        self.assertIn(("act_1", "begin"), game.labels)
+        self.assertIn(("act_1", "quiz_1"), game.labels)
 
     async def test_contains_sugar_with_input(self):
         expression = 'input() contains "portrait" or "winnie" or "investigate"'
@@ -124,6 +127,47 @@ label start(Channel="Room"):
             self.assertIn("use lowercase channel=", message)
             self.assertNotIn("top-level statement must not be indented", message)
             self.assertNotIn("unknown character n", message)
+
+    async def test_label_without_channel_uses_config_default_channel(self):
+        script = '''
+define n = Character(
+    "Narrator",
+    color="#0d5c16",
+)
+
+label setup:
+    jump start
+
+label start:
+    n "Welcome."
+'''
+        with TemporaryDirectory() as raw_dir:
+            root = Path(raw_dir)
+            game_dir = root / "game"
+            game_dir.mkdir()
+            (game_dir / "main.script").write_text(script)
+
+            game = load_game(game_dir)
+            io = NoSleepTypingLocalIO(root / "out")
+            session = GameSession(
+                io,
+                game,
+                config=GameConfig(
+                    delay_per_char=0,
+                    min_delay=0,
+                    max_delay=0,
+                    typing_delay=0,
+                    wait_scale=1,
+                    cleanup_prompt_timeout=120,
+                    default_channel="Lobby",
+                ),
+            )
+
+            await session.run_root()
+
+        events = [(event["channel"], event["kind"], event["text"]) for event in io.events]
+        self.assertIn(("Lobby", "channel", "created"), events)
+        self.assertIn(("Lobby", "dialogue", "Welcome."), events)
 
     def test_file_parse_errors_keep_valid_definitions(self):
         script = '''
@@ -275,6 +319,122 @@ label done(channel="Room"):
             self.assertTrue(session.variables["arrived"])
             self.assertGreaterEqual(elapsed, 0.02)
 
+    async def test_empty_dialogue_is_silent(self):
+        script = '''
+define n = Character(
+    "Narrator",
+    color="#0d5c16",
+)
+
+label setup:
+    jump start
+
+label start(channel="Room"):
+    n ""
+    n "After."
+'''
+        with TemporaryDirectory() as raw_dir:
+            root = Path(raw_dir)
+            game_dir = root / "game"
+            output_dir = root / "out"
+            game_dir.mkdir()
+            (game_dir / "main.script").write_text(script)
+
+            game = load_game(game_dir)
+            io = NoSleepTypingLocalIO(output_dir)
+            session = GameSession(
+                io,
+                game,
+                config=GameConfig(
+                    delay_per_char=0,
+                    min_delay=0,
+                    max_delay=0,
+                    typing_delay=0,
+                    wait_scale=1,
+                    cleanup_prompt_timeout=120,
+                ),
+            )
+
+            await session.run_root()
+
+            dialogue = [(event["kind"], event["text"]) for event in io.events if event["kind"] == "dialogue"]
+            self.assertEqual([("dialogue", "After.")], dialogue)
+
+    async def test_show_image_url_records_local_event(self):
+        script = '''
+default room_name = "Entrance"
+
+label setup:
+    jump start
+
+label start(channel="Room"):
+    show image "https://example.com/door.png":
+        caption "The $room_name door."
+'''
+        with TemporaryDirectory() as raw_dir:
+            root = Path(raw_dir)
+            game_dir = root / "game"
+            output_dir = root / "out"
+            game_dir.mkdir()
+            (game_dir / "main.script").write_text(script)
+
+            game = load_game(game_dir)
+            io = LocalDialogIO(output_dir)
+            session = GameSession(io, game)
+
+            await session.run_root()
+
+            image_events = [event for event in io.events if event["kind"] == "image"]
+            self.assertEqual(1, len(image_events))
+            self.assertEqual("The Entrance door.", image_events[0]["text"])
+            self.assertEqual("https://example.com/door.png", image_events[0]["source"])
+            self.assertIsNone(image_events[0]["path"])
+
+    async def test_show_image_local_asset_records_resolved_path(self):
+        script = '''
+label setup:
+    jump start
+
+label start(channel="Room"):
+    show image "door":
+        caption "The locked door."
+'''
+        with TemporaryDirectory() as raw_dir:
+            root = Path(raw_dir)
+            game_dir = root / "game"
+            images_dir = game_dir / "images"
+            output_dir = root / "out"
+            images_dir.mkdir(parents=True)
+            (images_dir / "door.png").write_bytes(b"fake image bytes")
+            (game_dir / "main.script").write_text(script)
+
+            game = load_game(game_dir)
+            io = LocalDialogIO(output_dir)
+            session = GameSession(io, game)
+
+            await session.run_root()
+
+            image_events = [event for event in io.events if event["kind"] == "image"]
+            self.assertEqual(1, len(image_events))
+            self.assertEqual("door", image_events[0]["source"])
+            self.assertEqual(str(images_dir / "door.png"), image_events[0]["path"])
+
+    def test_show_image_missing_local_asset_is_load_error(self):
+        script = '''
+label setup:
+    show image "missing"
+'''
+        with TemporaryDirectory() as raw_dir:
+            root = Path(raw_dir)
+            game_dir = root / "game"
+            game_dir.mkdir()
+            (game_dir / "main.script").write_text(script)
+
+            with self.assertRaises(ScriptLoadError) as raised:
+                load_game(game_dir)
+
+            self.assertIn("image 'missing' not found", str(raised.exception))
+
     async def test_each_dialogue_line_gets_own_reading_delay(self):
         script = '''
 default arrived = False
@@ -344,7 +504,7 @@ label start(channel="Room"):
             self.assertGreaterEqual(first_gap, 5 * session.delay_per_char)
             self.assertGreaterEqual(second_gap, 10 * session.delay_per_char)
 
-    async def test_menu_clicks_are_adapter_driven(self):
+    async def test_persistent_menu_clicks_are_adapter_driven(self):
         script = '''
 default picker = ""
 
@@ -352,7 +512,7 @@ label setup:
     jump start
 
 label start(channel="Room"):
-    menu:
+    persistent menu:
         "Choose":
             $ picker = username()
             jump done
@@ -382,7 +542,7 @@ label done(channel="Room"):
                 [event["kind"] for event in io.events if event["kind"].startswith("menu")],
             )
 
-    async def test_menu_continue_resumes_after_menu(self):
+    async def test_menu_resumes_after_option_without_continue(self):
         script = '''
 default picker = ""
 default after_menu = False
@@ -394,7 +554,6 @@ label start(channel="Room"):
     menu:
         "Choose":
             $ picker = username()
-            continue
     $ after_menu = True
     "Done."
 '''
@@ -424,6 +583,136 @@ label start(channel="Room"):
                 ("narration", "Done."),
                 [(event["kind"], event["text"]) for event in io.events],
             )
+
+    async def test_menu_option_text_interpolates_variables(self):
+        script = '''
+default dish = "Vegetarian Goose"
+default npc_name = "Jia Li"
+default picked = False
+
+label setup:
+    jump start
+
+label start(channel="Room"):
+    menu:
+        "Serve $dish":
+            $ picked = True
+        "Talk to $(npc_name)":
+            $ picked = True
+'''
+        with TemporaryDirectory() as raw_dir:
+            root = Path(raw_dir)
+            game_dir = root / "game"
+            output_dir = root / "out"
+            game_dir.mkdir()
+            (game_dir / "main.script").write_text(script)
+
+            game = load_game(game_dir)
+            io = LocalDialogIO(output_dir)
+            io.queue_menu("Room", 0, "Alice", "alice")
+            session = GameSession(io, game)
+
+            await session.run_root()
+
+            self.assertTrue(session.variables["picked"])
+            self.assertIn(
+                ("menu", "0:Serve Vegetarian Goose | 1:Talk to Jia Li"),
+                [(event["kind"], event["text"]) for event in io.events],
+            )
+
+    def test_menu_option_text_validates_interpolation(self):
+        script = '''
+label setup:
+    menu:
+        "Serve $missing":
+            "Done."
+'''
+        with TemporaryDirectory() as raw_dir:
+            root = Path(raw_dir)
+            game_dir = root / "game"
+            game_dir.mkdir()
+            (game_dir / "main.script").write_text(script)
+
+            with self.assertRaises(ScriptLoadError) as raised:
+                load_game(game_dir)
+
+            self.assertIn("unknown variable missing", str(raised.exception))
+
+    async def test_persistent_menu_keeps_waiting_after_option_without_continue(self):
+        script = '''
+default clicks = 0
+
+label setup:
+    jump start
+
+label start(channel="Room"):
+    persistent menu:
+        "Choose":
+            $ clicks += 1
+            if clicks == 2:
+                jump done
+
+label done(channel="Room"):
+    "Done."
+'''
+        with TemporaryDirectory() as raw_dir:
+            root = Path(raw_dir)
+            game_dir = root / "game"
+            output_dir = root / "out"
+            game_dir.mkdir()
+            (game_dir / "main.script").write_text(script)
+
+            game = load_game(game_dir)
+            io = LocalDialogIO(output_dir)
+            io.queue_menu("Room", 0, "Alice", "alice")
+            io.queue_menu("Room", 0, "Bob", "bob")
+            session = GameSession(io, game)
+            session.min_delay = 0
+            session.max_delay = 0
+
+            await session.run_root()
+
+            self.assertEqual(2, session.variables["clicks"])
+            self.assertEqual(
+                ["menu", "menu_click", "menu_click", "menu_close"],
+                [event["kind"] for event in io.events if event["kind"].startswith("menu")],
+            )
+
+    async def test_menu_with_no_visible_options_logs_and_continues(self):
+        script = '''
+default door_locked = False
+default after_menu = False
+
+label setup:
+    jump start
+
+label start(channel="Room"):
+    menu:
+        "Enter a code" if door_locked:
+            "Hidden."
+    $ after_menu = True
+    "After."
+'''
+        with TemporaryDirectory() as raw_dir:
+            root = Path(raw_dir)
+            game_dir = root / "game"
+            output_dir = root / "out"
+            game_dir.mkdir()
+            (game_dir / "main.script").write_text(script)
+
+            game = load_game(game_dir)
+            io = LocalDialogIO(output_dir)
+            session = GameSession(io, game)
+            session.min_delay = 0
+            session.max_delay = 0
+
+            with self.assertLogs("dialogbot.runtime", level="DEBUG") as logs:
+                await session.run_root()
+
+            self.assertTrue(session.variables["after_menu"])
+            self.assertNotIn("menu", [event["kind"] for event in io.events])
+            self.assertIn(("narration", "After."), [(event["kind"], event["text"]) for event in io.events])
+            self.assertIn("Skipping menu with no visible options", "\n".join(logs.output))
 
     def test_continue_outside_menu_is_invalid(self):
         script = '''
@@ -800,8 +1089,9 @@ label done(channel="Room"):
     async def test_real_game_end_to_end_opens_secret_door(self):
         with TemporaryDirectory() as raw_dir:
             root = Path(raw_dir)
-            # use real script in ./game/
-            game_dir = Path("game")
+            # The secret-door scenario is the bundled example game, not the
+            # active game in ./game/.
+            game_dir = Path("game_example")
             output_dir = root / "out"
             game = load_game(game_dir)
             io = LocalDialogIO(output_dir)
@@ -822,6 +1112,7 @@ label done(channel="Room"):
             session = GameSession(io, game)
             session.min_delay = 0
             session.max_delay = 0
+            session.typing_delay = 0
             session.wait_scale = 0
 
             await asyncio.wait_for(session.run_root(), timeout=2)

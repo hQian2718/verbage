@@ -25,11 +25,14 @@ in `main.script`.
 
 ## Labels And Channels
 
-Every label except `setup` must declare a channel:
+Labels may declare an explicit channel:
 
 ```text
 label kitchen(channel="Kitchen"):
 ```
+
+If a label omits `channel=`, the runtime uses `GameConfig.default_channel`,
+which is loaded from `GAME_DEFAULT_CHANNEL` and falls back to `"Game"`.
 
 When an event enters a label, `GameSession.bind_channel()` claims that script
 channel name. Only one event may run in a channel at a time. This protects the
@@ -72,8 +75,13 @@ different channels.
 
 ## Menus
 
-A menu renders visible options through the adapter. Conditions are evaluated
-once when the menu is opened.
+`menu:` renders visible options through the adapter. Conditions are evaluated
+once when the menu is opened. A regular menu behaves like a Ren'Py menu: after
+the clicked option body finishes without jumping, execution continues after the
+menu block. Menu option text uses the same interpolation syntax as dialogue, so
+`"Serve $dish"` renders with the current value of `dish`.
+If every option is hidden by its condition, the runtime logs a debug message and
+continues after the menu block.
 
 When a user clicks an option:
 
@@ -83,14 +91,19 @@ When a user clicks an option:
   statement after the menu in the same label.
 - If the body reaches a `jump`, the menu closes and control leaves the current
   label.
-- If the body does not jump, the menu stays live for more users.
+- If the body does not jump or `continue`, regular `menu:` closes and execution
+  continues after the menu.
 
-The Discord adapter enforces one click per user per menu view. Local tests can
-queue menu clicks with `LocalDialogIO.queue_menu()`.
+Use `persistent menu:` for the old persistent behavior. A persistent menu stays
+live after an option body finishes without `jump` or `continue`, allowing more
+users to click options in the same menu view. The Discord adapter enforces one
+click per user per menu view. Local tests can queue menu clicks with
+`LocalDialogIO.queue_menu()`.
 
-Timed menus use `menu timeout <seconds>:`. On timeout, the runtime closes the
-menu and runs the optional `timeout:` branch. If no timeout branch exists,
-execution continues after the menu block.
+Timed menus use `menu timeout <seconds>:` or
+`persistent menu timeout <seconds>:`. On timeout, the runtime closes the menu and
+runs the optional `timeout:` branch. If no timeout branch exists, execution
+continues after the menu block.
 
 ## Buttons
 
@@ -165,6 +178,9 @@ Bare narration:
 "YOU WIN!"
 ```
 
+Dialogue that resolves to empty or whitespace-only text is silent. Use `wait`
+for an explicit timed pause.
+
 Interpolation runs in two passes:
 
 1. Explicit `$(expression)`.
@@ -172,6 +188,29 @@ Interpolation runs in two passes:
 
 This order prevents identifiers inside explicit expressions from being expanded
 too early.
+
+## Images
+
+Image statements post a local asset from `game/images` or a remote image URL in
+the active channel:
+
+```text
+show image "restaurant_front"
+show image "https://example.com/restaurant_front.png"
+```
+
+Local assets are resolved by basename or exact filename. For
+`show image "restaurant_front"`, the loader checks common image extensions such
+as `.png`, `.jpg`, `.jpeg`, `.gif`, and `.webp` under `game/images`.
+
+Images can include one caption line:
+
+```text
+show image "restaurant_front":
+    caption "The restaurant waits under the old willow tree."
+```
+
+Captions use the same interpolation rules as dialogue.
 
 ## Expressions
 

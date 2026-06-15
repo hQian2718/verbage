@@ -121,6 +121,6 @@ label start(channel="Room"):
 - A test hangs when a script waits for input/button/menu and no queued action is
   available.
 - A menu click index points at an option that was omitted by a condition.
-- A local script emits dialogue from `setup`, which is channel-less by design.
+- A local script emits dialogue before any label has bound a channel.
 - A script jumps into a label already active in the same channel, causing a
   channel conflict.

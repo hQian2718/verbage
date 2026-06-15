@@ -67,6 +67,9 @@ class LocalDialogIO:
     async def send_character_dialogue(self, channel_name: str, character: Character, text: str) -> None:
         await self.record(channel_name, "dialogue", text, speaker=character.name, character=character.key)
 
+    async def send_image(self, channel_name: str, source: str, image_path: Path | None, caption: str | None = None) -> None:
+        await self.record(channel_name, "image", caption or "", source=source, path=str(image_path) if image_path else None)
+
     async def send_channel_link(self, channel_name: str, label: str, target_channel_name: str) -> None:
         await self.ensure_channel(target_channel_name)
         await self.record(channel_name, "channel_link", label, target=target_channel_name)
@@ -149,6 +152,7 @@ TIMESTAMPED_KINDS = {
     "notice",
     "narration",
     "dialogue",
+    "image",
     "channel_link",
     "input_prompt",
     "button",

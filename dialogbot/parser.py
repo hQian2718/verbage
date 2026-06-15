@@ -26,6 +26,7 @@ from .model import (
     MenuOption,
     Run,
     ScriptGame,
+    ShowImage,
     SourceRef,
     Statement,
     TimeLimit,
@@ -241,12 +242,14 @@ class Parser:
 
     def parse_statement(self, line: Line) -> Statement:
         text = line.text
-        if text == "menu:" or text.startswith("menu timeout "):
+        if text == "menu:" or text.startswith("menu timeout ") or text == "persistent menu:" or text.startswith("persistent menu timeout "):
             return self.parse_menu(line)
         if text.startswith("button "):
             return self.parse_button(line)
         if text.startswith("input "):
             return self.parse_input(line)
+        if text.startswith("show image "):
+            return self.parse_show_image(line)
         if text.startswith("if "):
             return self.parse_if(line)
         if text.startswith("jump "):
@@ -285,7 +288,12 @@ class Parser:
         return Dialogue(line.source, None, f"[invalid statement at {line.source.format()}]")
 
     def parse_menu(self, line: Line) -> Menu:
-        timeout_seconds = parse_optional_timeout(line.text, "menu", line, self)
+        persistent = False
+        text = line.text
+        if text.startswith("persistent menu"):
+            persistent = True
+            text = text[len("persistent ") :]
+        timeout_seconds = parse_optional_timeout(text, "menu", line, self)
         self.index += 1
         options: list[MenuOption] = []
         timeout_body: list[Statement] | None = None
@@ -306,7 +314,7 @@ class Parser:
             self.index += 1
             body = self.parse_block(option_line.indent)
             options.append(MenuOption(text.replace('\\"', '"'), condition, body, option_line.source))
-        return Menu(line.source, options, timeout_seconds, timeout_body)
+        return Menu(line.source, options, timeout_seconds, timeout_body, persistent)
 
     def parse_button(self, line: Line) -> Button:
         match = re.match(r'button\s+"((?:\\"|[^"])*)"(?:\s+timeout\s+(.+?))?\s*:?\s*$', line.text)
@@ -319,6 +327,40 @@ class Parser:
         self.index += 1
         body = self.parse_block(line.indent)
         return Button(line.source, text.replace('\\"', '"'), body, timeout_seconds)
+
+    def parse_show_image(self, line: Line) -> ShowImage:
+        match = re.match(r'show\s+image\s+(".*")\s*(:)?\s*$', line.text)
+        if not match:
+            self.error(line, 'invalid show image statement; expected: show image "asset_or_url"')
+            self.index += 1
+            return ShowImage(line.source, "", None, None)
+        asset_raw, block_marker = match.groups()
+        asset = parse_string_literal(asset_raw, line, self)
+        image_path = None if is_url(asset) else resolve_image(self.game_dir, asset)
+        if asset and not is_url(asset) and image_path is None:
+            self.error(line, f'image {asset!r} not found in {self.game_dir / "images"}')
+        self.index += 1
+        caption = self.parse_image_caption(line) if block_marker else None
+        return ShowImage(line.source, asset, image_path, caption)
+
+    def parse_image_caption(self, image_line: Line) -> str | None:
+        if self.index >= len(self.lines):
+            return None
+        line = self.lines[self.index]
+        if line.indent <= image_line.indent:
+            return None
+        match = re.match(r'caption\s+(".*")\s*$', line.text)
+        if not match:
+            self.error(line, 'invalid show image block; expected: caption "text"')
+            self.index += 1
+            self.skip_indented_block(image_line.indent)
+            return None
+        caption = parse_string_literal(match.group(1), line, self)
+        self.index += 1
+        if self.index < len(self.lines) and self.lines[self.index].indent > image_line.indent:
+            self.error(self.lines[self.index], "show image accepts only one caption line")
+            self.skip_indented_block(image_line.indent)
+        return caption
 
     def parse_input(self, line: Line) -> InputBlock:
         match = re.match(
@@ -414,11 +456,19 @@ def strip_comment(line: str) -> str:
 
 
 def resolve_image(game_dir: Path, basename: str) -> Path | None:
+    if Path(basename).suffix:
+        candidate = game_dir / "images" / basename
+        if candidate.exists():
+            return candidate
     for extension in ("png", "jpg", "jpeg", "gif", "webp"):
         candidate = game_dir / "images" / f"{basename}.{extension}"
         if candidate.exists():
             return candidate
     return None
+
+
+def is_url(value: str) -> bool:
+    return value.startswith("http://") or value.startswith("https://")
 
 
 def parse_string_literal(raw: str, line: Line, parser: Parser) -> str:
@@ -470,7 +520,7 @@ def parse_duration(raw: str, line: Line, parser: Parser) -> float:
 
 
 def label_error_message(text: str) -> str:
-    expected = 'expected: label name(channel="Channel Name"): or label setup:'
+    expected = 'expected: label name: or label name(channel="Channel Name"):'
     if not text.endswith(":"):
         return f"invalid label declaration; label declarations must end with ':'. {expected}"
 
@@ -522,8 +572,6 @@ def validate_game(game: ScriptGame) -> list[str]:
         errors.append("missing entry point label main.setup")
 
     for label in game.labels.values():
-        if label.name != "setup" and not label.channel:
-            errors.append(f"{label.source.format()}: label {label.display} must declare channel")
         if label.name == "setup" and label.channel:
             errors.append(f"{label.source.format()}: setup label must not declare channel")
         errors.extend(validate_statements(game, label, label.body))
@@ -543,6 +591,9 @@ def validate_statements(
                 if statement.character and statement.character not in game.characters:
                     errors.append(f"{statement.source.format()}: unknown character {statement.character}")
                 validate_interpolation(statement.text, game.defaults)
+            elif isinstance(statement, ShowImage):
+                if statement.caption:
+                    validate_interpolation(statement.caption, game.defaults)
             elif isinstance(statement, Jump):
                 resolve_label(game, label.namespace, statement.target)
             elif isinstance(statement, Continue):
@@ -555,6 +606,7 @@ def validate_statements(
                 if statement.timeout_body and statement.timeout_seconds is None:
                     errors.append(f"{statement.source.format()}: menu timeout branch requires menu timeout")
                 for option in statement.options:
+                    validate_interpolation(option.text, game.defaults)
                     if option.condition:
                         validate_condition(option.condition, game.defaults)
                     errors.extend(validate_statements(game, label, option.body, allow_continue=True))
