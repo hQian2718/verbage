@@ -149,6 +149,8 @@ input "Enter the code on the keypad." into code_entered:
 ```
 
 The captured message is assigned to the declared variable before cases run.
+The message author is recorded for `username()`, so input case bodies can use
+the name of the player who typed the response.
 `case value:` performs equality against a literal or variable expression.
 `case contains "x" or "y":` applies the script `contains` operator to the
 captured text. `case timeout:` is available only when the block uses
