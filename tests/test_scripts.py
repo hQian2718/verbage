@@ -44,7 +44,9 @@ class ScriptTests(unittest.IsolatedAsyncioTestCase):
     def test_sample_scripts_load(self):
         game = load_game("game")
         self.assertIn(("main", "setup"), game.labels)
-        self.assertIn(("interior", "restroom_2"), game.labels)
+        self.assertIn(("main", "ask_all_ready"), game.labels)
+        self.assertIn(("act_1", "begin"), game.labels)
+        self.assertIn(("act_1", "quiz_1"), game.labels)
 
     async def test_contains_sugar_with_input(self):
         expression = 'input() contains "portrait" or "winnie" or "investigate"'
@@ -1087,8 +1089,9 @@ label done(channel="Room"):
     async def test_real_game_end_to_end_opens_secret_door(self):
         with TemporaryDirectory() as raw_dir:
             root = Path(raw_dir)
-            # use real script in ./game/
-            game_dir = Path("game")
+            # The secret-door scenario is the bundled example game, not the
+            # active game in ./game/.
+            game_dir = Path("game_example")
             output_dir = root / "out"
             game = load_game(game_dir)
             io = LocalDialogIO(output_dir)
@@ -1109,6 +1112,7 @@ label done(channel="Room"):
             session = GameSession(io, game)
             session.min_delay = 0
             session.max_delay = 0
+            session.typing_delay = 0
             session.wait_scale = 0
 
             await asyncio.wait_for(session.run_root(), timeout=2)

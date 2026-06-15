@@ -4,6 +4,16 @@ import os
 from dataclasses import dataclass
 
 
+def get_optional_int_env(name: str) -> int | None:
+    value = os.getenv(name, "").strip()
+    if not value:
+        return None
+    try:
+        return int(value)
+    except ValueError as exc:
+        raise RuntimeError(f"{name} must be a Discord id integer.") from exc
+
+
 @dataclass(frozen=True)
 class GameConfig:
     delay_per_char: float
