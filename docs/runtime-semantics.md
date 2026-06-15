@@ -1,5 +1,5 @@
 <!--
-Copyright (C) 2026 Placeholder Name
+Copyright (C) 2026 Kuan Qian
 SPDX-License-Identifier: GPL-3.0-only
 -->
 
