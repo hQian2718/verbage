@@ -9,14 +9,15 @@ from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
 
+from dialogbot.config import get_optional_int_env
 from dialogbot.discord_io import DiscordDialogIO
 from dialogbot.parser import ScriptLoadError, load_game
 from dialogbot.runtime import GameManager
 
 
-load_dotenv()
+load_dotenv(override=True)
 LOGGER = logging.getLogger(__name__)
-
+print(os.getenv("DEV_GUILD_ID"))
 logging.basicConfig(
     level=os.getenv("LOG_LEVEL", "INFO"),
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
@@ -33,23 +34,26 @@ class DialogBot(commands.Bot):
         self.manager = GameManager()
 
     async def setup_hook(self) -> None:
-        guild_id = os.getenv("GUILD_ID")
-        if guild_id:
-            guild = discord.Object(id=int(guild_id))
+        if os.getenv("GUILD_ID", "").strip():
+            LOGGER.warning("GUILD_ID is ignored. Use DEV_GUILD_ID for test-server command sync.")
+
+        dev_guild_id = get_optional_int_env("DEV_GUILD_ID")
+        if dev_guild_id is not None:
+            guild = discord.Object(id=dev_guild_id)
             self.tree.copy_global_to(guild=guild)
             try:
                 await self.tree.sync(guild=guild)
             except discord.Forbidden as exc:
                 raise RuntimeError(
-                    f"Could not sync slash commands to GUILD_ID={guild_id}. "
-                    "Check that this is the target server's guild id, and that "
+                    f"Could not sync slash commands to DEV_GUILD_ID={dev_guild_id}. "
+                    "Check that this is the test server's guild id, and that "
                     "the bot application for DISCORD_TOKEN is installed in that "
                     "server with the applications.commands scope."
                 ) from exc
-            logging.info("Synced guild commands for %s", guild_id)
+            logging.info("Synced guild commands for DEV_GUILD_ID=%s", dev_guild_id)
         else:
             await self.tree.sync()
-            logging.info("Synced global commands")
+            logging.info("Synced global commands for all installed servers")
 
 
 bot = DialogBot()

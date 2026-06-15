@@ -1,0 +1,16 @@
+[Unit]
+Description=Dialog Discord Bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/dialog-bot
+EnvironmentFile=/opt/dialog-bot/.env
+ExecStart=/opt/dialog-bot/.venv/bin/python /opt/dialog-bot/bot.py
+Restart=always
+RestartSec=10
+User=ubuntu
+
+[Install]
+WantedBy=multi-user.target
