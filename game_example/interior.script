@@ -1,3 +1,6 @@
+# Copyright (C) 2026 Placeholder Name
+# SPDX-License-Identifier: GPL-3.0-only
+
 default kitchen_investigator = ""
 default secret_door_locked = True
 default restroom_action = ""

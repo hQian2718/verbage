@@ -1,3 +1,6 @@
+# Copyright (C) 2026 Placeholder Name
+# SPDX-License-Identifier: GPL-3.0-only
+
 default num_apps = 3
 default app_1 = "Vegetarian Goose"
 default app_2 = "Candied Lotus Root"

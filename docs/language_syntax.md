@@ -1,3 +1,8 @@
+<!--
+Copyright (C) 2026 Placeholder Name
+SPDX-License-Identifier: GPL-3.0-only
+-->
+
 # Script Language Reference
 
 The bot interprets a Ren'Py-inspired script format. Every `.script` file inside `game/` is loaded at bot startup. The entry point is `label setup:` in `main.script`.

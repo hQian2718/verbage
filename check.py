@@ -1,3 +1,6 @@
+# Copyright (C) 2026 Placeholder Name
+# SPDX-License-Identifier: GPL-3.0-only
+
 from __future__ import annotations
 
 import argparse

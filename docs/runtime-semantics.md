@@ -1,3 +1,8 @@
+<!--
+Copyright (C) 2026 Placeholder Name
+SPDX-License-Identifier: GPL-3.0-only
+-->
+
 # Runtime Semantics
 
 This document describes the implementation behavior. For author-facing syntax,

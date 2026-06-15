@@ -1,3 +1,8 @@
+<!--
+Copyright (C) 2026 Placeholder Name
+SPDX-License-Identifier: GPL-3.0-only
+-->
+
 # Verbage
 
 Verbage is a Discord bot for telling interactive stories and running small

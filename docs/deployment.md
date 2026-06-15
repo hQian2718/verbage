@@ -1,3 +1,8 @@
+<!--
+Copyright (C) 2026 Placeholder Name
+SPDX-License-Identifier: GPL-3.0-only
+-->
+
 # Deployment
 
 This guide describes the simple production setup for running Verbage on an AWS

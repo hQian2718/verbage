@@ -4,6 +4,11 @@ title: Quickstart to Verbage
 description: Learn how to write and run interactive Discord stories with Verbage.
 ---
 
+<!--
+Copyright (C) 2026 Placeholder Name
+SPDX-License-Identifier: GPL-3.0-only
+-->
+
 ## What Is Verbage?
 
 Verbage is a Discord bot for telling interactive stories and running text games in a Discord server. Players can read dialog, but they can also make choices, type responses to NPCs, and make the story their own. 
