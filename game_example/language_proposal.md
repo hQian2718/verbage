@@ -180,6 +180,8 @@ input "Enter the code on the keypad." into code_entered:
 
 - Posts the prompt, waits for the next non-bot message in the active channel,
   stores it in the declared variable, then evaluates cases in order.
+- The message author is recorded, so `username()` inside a case body returns the
+  player who typed the response.
 - `case value:` compares the captured text to a literal or variable expression.
 - `case contains "x" or "y":` applies the case-insensitive `contains` operator
   to the captured text.
@@ -270,7 +272,7 @@ $ kitchen_investigator = username()
 | Name | Blocks? | Returns | Notes |
 |---|---|---|---|
 | `input(prompt)` | yes | `str` | Posts the optional string prompt, then captures the next non-bot message in the active channel. May appear inside a condition (e.g. `if input("What do you inspect?") contains "x":`); MVP allows one `input()` per expression. |
-| `username()` | no | `str` | Identifier of the user who last clicked a `button`/`menu` option in this event. Empty string if none. |
+| `username()` | no | `str` | Identifier of the user who last clicked a `button`/`menu` option or typed an input response in this event. Empty string if none. |
 
 The built-in set is intentionally minimal and may grow.
 
