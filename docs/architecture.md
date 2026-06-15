@@ -68,7 +68,8 @@ Each running script path has an `EventContext`. A context tracks:
 
 - Current namespace for bare label resolution.
 - Current script channel name.
-- Last click user for `username()`.
+- Last interaction user for `username()` from a button, menu option, or text
+  input.
 
 All events in a session share one variable dictionary protected by an
 `asyncio.Lock`.

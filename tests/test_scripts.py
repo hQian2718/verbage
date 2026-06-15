@@ -802,6 +802,47 @@ label start(channel="Room"):
             self.assertIn("button_click", event_kinds)
             self.assertNotIn("button_timeout", event_kinds)
 
+    async def test_username_refers_to_input_author_inside_input_block(self):
+        script = '''
+define n = Character(
+    "Narrator",
+    color="#0d5c16",
+)
+
+default answer = ""
+default respondent = ""
+
+label setup:
+    jump start
+
+label start(channel="Room"):
+    input "What do you inspect?" into answer:
+        case contains "portrait":
+            $ respondent = username()
+            n "$respondent found the portrait clue."
+        case _:
+            $ respondent = username()
+'''
+        with TemporaryDirectory() as raw_dir:
+            root = Path(raw_dir)
+            game_dir = root / "game"
+            output_dir = root / "out"
+            game_dir.mkdir()
+            (game_dir / "main.script").write_text(script)
+
+            game = load_game(game_dir)
+            io = LocalDialogIO(output_dir)
+            io.queue_input("Room", "I inspect the portrait.", "Alice", "alice")
+            session = GameSession(io, game)
+            session.min_delay = 0
+            session.max_delay = 0
+
+            await session.run_root()
+
+            self.assertEqual("I inspect the portrait.", session.variables["answer"])
+            self.assertEqual("Alice", session.variables["respondent"])
+            self.assertIn(("dialogue", "Alice found the portrait clue."), [(event["kind"], event["text"]) for event in io.events])
+
     async def test_timed_menu_runs_timeout_branch(self):
         script = '''
 default timed_out = False

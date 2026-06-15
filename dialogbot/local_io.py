@@ -9,7 +9,7 @@ from pathlib import Path
 from time import monotonic
 from typing import Any
 
-from .io import MenuChoice, MenuHandle, UserAction
+from .io import MenuChoice, MenuHandle, TextInput, UserAction
 from .model import Character
 
 
@@ -31,7 +31,7 @@ class LocalDialogIO:
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.message_timestamps = message_timestamps
         self.events: list[dict[str, Any]] = []
-        self.input_queues: dict[str, asyncio.Queue[str]] = {}
+        self.input_queues: dict[str, asyncio.Queue[TextInput]] = {}
         self.button_queues: dict[tuple[str, str], asyncio.Queue[UserAction]] = {}
         self.menu_queues: dict[str, asyncio.Queue[tuple[int, UserAction]]] = {}
         self.session_id: str | None = None
@@ -39,8 +39,16 @@ class LocalDialogIO:
     async def prepare_session(self, session_id: str) -> None:
         self.session_id = session_id
 
-    def queue_input(self, channel_name: str, text: str) -> None:
-        self.input_queues.setdefault(channel_name, asyncio.Queue()).put_nowait(text)
+    def queue_input(
+        self,
+        channel_name: str,
+        text: str,
+        display_name: str = "local-user",
+        user_id: str = "local-user",
+    ) -> None:
+        self.input_queues.setdefault(channel_name, asyncio.Queue()).put_nowait(
+            TextInput(text, UserAction(user_id, display_name))
+        )
 
     def queue_button(self, channel_name: str, label: str, display_name: str, user_id: str = "local-user") -> None:
         key = (channel_name, label)
@@ -74,13 +82,13 @@ class LocalDialogIO:
         await self.ensure_channel(target_channel_name)
         await self.record(channel_name, "channel_link", label, target=target_channel_name)
 
-    async def wait_for_input(self, channel_name: str, prompt: str | None = None) -> str:
+    async def wait_for_input(self, channel_name: str, prompt: str | None = None) -> TextInput:
         if prompt:
             await self.record(channel_name, "input_prompt", prompt)
         await self.record(channel_name, "input_wait", "")
-        text = await self.input_queues.setdefault(channel_name, asyncio.Queue()).get()
-        await self.record(channel_name, "input", text)
-        return text
+        result = await self.input_queues.setdefault(channel_name, asyncio.Queue()).get()
+        await self.record(channel_name, "input", result.text, user=result.user.display_name)
+        return result
 
     async def wait_for_button(
         self,

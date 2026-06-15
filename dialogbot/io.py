@@ -14,6 +14,12 @@ class UserAction:
 
 
 @dataclass(frozen=True)
+class TextInput:
+    text: str
+    user: UserAction
+
+
+@dataclass(frozen=True)
 class MenuChoice:
     index: int
     text: str
@@ -34,7 +40,7 @@ class DialogIO(Protocol):
     async def send_character_dialogue(self, channel_name: str, character: Character, text: str) -> None: ...
     async def send_image(self, channel_name: str, source: str, image_path: Path | None, caption: str | None = None) -> None: ...
     async def send_channel_link(self, channel_name: str, label: str, target_channel_name: str) -> None: ...
-    async def wait_for_input(self, channel_name: str, prompt: str | None = None) -> str: ...
+    async def wait_for_input(self, channel_name: str, prompt: str | None = None) -> TextInput: ...
     async def wait_for_button(
         self,
         channel_name: str,

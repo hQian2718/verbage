@@ -83,7 +83,9 @@ class EventContext:
 
         # input() consumes the next human-authored message in the current event
         # channel. The IO adapter decides where that message comes from.
-        return await self.session.io.wait_for_input(self.channel_name, prompt)
+        result = await self.session.io.wait_for_input(self.channel_name, prompt)
+        self.last_click_user = result.user
+        return result.text
 
     def username(self) -> str:
         if not self.last_click_user:
@@ -485,9 +487,9 @@ class GameSession:
             raise RuntimeErrorWithContext("input block used before entering a channel")
         try:
             if statement.timeout_seconds is None:
-                value = await self.io.wait_for_input(context.channel_name, statement.prompt)
+                result = await self.io.wait_for_input(context.channel_name, statement.prompt)
             else:
-                value = await asyncio.wait_for(
+                result = await asyncio.wait_for(
                     self.io.wait_for_input(context.channel_name, statement.prompt),
                     timeout=statement.timeout_seconds * self.wait_scale,
                 )
@@ -497,6 +499,8 @@ class GameSession:
                 await self.execute_block(context, timeout_case.body)
             return
 
+        context.last_click_user = result.user
+        value = result.text
         await context.set_var(statement.variable, value)
         default_case = None
         for case in statement.cases:

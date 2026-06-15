@@ -13,7 +13,7 @@ from typing import TypeVar
 import discord
 from discord.ext import commands
 
-from .io import MenuChoice, MenuHandle, UserAction
+from .io import MenuChoice, MenuHandle, TextInput, UserAction
 from .model import Character
 
 
@@ -116,7 +116,7 @@ class DiscordDialogIO:
             lambda: channel.send(self.timestamp_only(), view=view),
         )
 
-    async def wait_for_input(self, channel_name: str, prompt: str | None = None) -> str:
+    async def wait_for_input(self, channel_name: str, prompt: str | None = None) -> TextInput:
         channel = await self.get_or_create_channel(channel_name)
         if prompt:
             await self.retry_discord_call(
@@ -128,7 +128,7 @@ class DiscordDialogIO:
             return message.channel.id == channel.id and not message.author.bot
 
         message = await self.bot.wait_for("message", check=check)
-        return message.content
+        return TextInput(message.content, UserAction(str(message.author.id), message.author.display_name))
 
     async def wait_for_button(
         self,
