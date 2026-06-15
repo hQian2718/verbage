@@ -55,7 +55,7 @@ label quiz_1(channel="Job Quiz"):
             n "Time's up! No points for this one."
 
     n "What is Chai Baogen's job at the Factory?"
-    show image "Chai Baogen"
+    show image "chai baogen"
     menu timeout 45 seconds:
         "Political Commissar":
         "Loom Operator":
@@ -125,7 +125,7 @@ label quiz_1(channel="Job Quiz"):
             n "Time's up! No points for this one."
     
     n "What was Jin Fong doing at the Factory?"
-    show image "Jin Fong"
+    show image "jin fong"
     menu timeout 45 seconds:
         "Floor Manager":
             n "Incorrect!"
@@ -140,7 +140,7 @@ label quiz_1(channel="Job Quiz"):
             n "Time's up! No points for this one."
 
     n "What did Cheng Ji do at the Factory?"
-    show image "Cheng Ji"
+    show image "cheng ji"
     menu timeout 45 seconds:
         "Punchcard Programmer":
             $ score_1 = score_1 + 1
