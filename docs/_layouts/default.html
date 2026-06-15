@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="{{ page.description | default: site.description | default: 'Verbage documentation' }}">
+  <title>{{ page.title | default: site.title | default: 'Verbage' }}</title>
+  {% include head-custom.html %}
+  <style>
+    :root {
+      color-scheme: light;
+      --accent: #8d2f3f;
+      --ink: #242124;
+      --muted: #625a62;
+      --page: #fffaf3;
+      --panel: #ffffff;
+      --rule: #e5ddd1;
+      --code: #f4efe8;
+    }
+
+    body {
+      margin: 0;
+      background: var(--page);
+      color: var(--ink);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.6;
+    }
+
+    main {
+      box-sizing: border-box;
+      max-width: 880px;
+      margin: 0 auto;
+      padding: 48px 24px 80px;
+    }
+
+    h1, h2, h3 {
+      line-height: 1.2;
+      margin-top: 2rem;
+    }
+
+    h1:first-child, h2:first-child {
+      margin-top: 0;
+    }
+
+    a {
+      color: var(--accent);
+    }
+
+    img {
+      max-width: 100%;
+      height: auto;
+    }
+
+    code {
+      background: var(--code);
+      border-radius: 4px;
+      padding: 0.1rem 0.25rem;
+    }
+
+    pre {
+      overflow-x: auto;
+      background: var(--code);
+      border: 1px solid var(--rule);
+      border-radius: 8px;
+      padding: 1rem;
+    }
+
+    pre code {
+      background: transparent;
+      padding: 0;
+    }
+
+    blockquote {
+      margin-left: 0;
+      padding-left: 1rem;
+      border-left: 4px solid var(--rule);
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <main>
+    {{ content }}
+  </main>
+</body>
+</html>
