@@ -1,7 +1,12 @@
-tutorial.md
+---
+layout: default
+title: Quickstart to Verbage
+description: Learn how to write and run interactive Discord stories with Verbage.
+---
+
 ## What Is Verbage?
 
-Verbage is a Discord bot for telling interactive stories and running small games in a Discord server. Players can read dialog, but they can also make choices, type responses to NPCs, and make the story their own. 
+Verbage is a Discord bot for telling interactive stories and running text games in a Discord server. Players can read dialog, but they can also make choices, type responses to NPCs, and make the story their own. 
 
 If you have used Twine or Ren'Py, the idea will feel familiar: you write a script, Verbage checks it, and a player starts it with `/start`. However, Verbage does a couple of unique things.
 
@@ -11,22 +16,23 @@ If you have used Twine or Ren'Py, the idea will feel familiar: you write a scrip
 
 If this intrigues you, you should use Verbage!
 
-[[]]
-[[Quickstart to Verbage#The Syntax of Verbage|Show me how to write a script!]]
-[[Quickstart to Verbage#Deploying and Running the Game|How do I play the story I created?]]
+- [Show me how to write a script!](#the-syntax-of-verbage)
+- [How do I play the story I created?](#deploying-and-running-the-game)
 
 ## Getting Started
 As the game maker, you should download the code of Verbage. You can get it here:
 
-(Github link)
-(Itch.io link)
+[Source Code on Github](https://github.com/hQian2718/discord-dialog-rpg)
+[Source Code on itch.io](https://vielzahl.itch.io/verbage)
 
 You need Python installed on your computer. Verbage recommends Python 3.12.
 
 You can set up everything and check your installation via these commands. Run them by pasting them into the terminal.
 
 ```sh
-
+python3 -m venv .venv
+. .venv/bin/activate
+pip install -e .
 ```
 
 ## The Syntax of Verbage
@@ -535,3 +541,15 @@ To run the game, you must be running the bot program on your computer and point 
 - `GAME_DEFAULT_CHANNEL`
     - The channel name used by labels that do not specify `channel="..."`.
     - Example: `Game`
+
+## Understanding The Source Code
+Most of Verbage was written by a LLM! If you like to code with an agent, ask it how
+this repository works. 
+
+You can also read about the project from these docs:
+
+- [Language syntax](language_syntax.md) is the writer-facing reference for `.script` files.
+- [Runtime semantics](runtime-semantics.md) explains what each command does while the game is running.
+- [Architecture](architecture.md) gives a map of the parser, runtime, Discord adapter, and local testing adapter.
+- [Local testing](local-testing.md) shows how to run scripts without Discord, using local mocks and saved output.
+- [Deployment](deployment.md) covers the steps for running Verbage on a server.
