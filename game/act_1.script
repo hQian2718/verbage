@@ -8,6 +8,12 @@ default main_1 = "Borscht"
 default main_2 = "Grilled Prawns"
 default main_3 = "Baked Clams with Cabbage"
 
+# number of appetizers served per table
+# gates jump to quiz and act II
+default na_1 = 0
+default na_2 = 0
+default na_3 = 0
+
 label begin(channel="Meta"):
     n "You should find out what everyone's jobs were at the Factory."
     n "You'll be quizzed on this later!!"
@@ -18,149 +24,281 @@ label begin(channel="Meta"):
     jump quiz_1
 
 default score_1 = 0
+default response = ""
+default player_name = ""
 label quiz_1(channel="Job Quiz"):
     n "Select a captain amongst yourselves! Only the captain can answer questions."
     n "Keep going when you are ready."
     button "Begin the Quiz":
-        n "Let's see how well you can do."
+        zl "What's happening here?"
+        bgn "Our waiters have gathered for something ..."
+        n  "What? Players, are you seeing this?"
+        input "" into response:
+            case _:
+                $ player_name = username()
+                jf "It's $player_name! You are one of the servers?"
+                wait 3
+                jf "Hello!"
+        n  "How are you here? The story is supposed to be on pause!"
+        bao "What is that supposed to mean?"
+        n   "Uh, nothing."
+        gw  "We'll just watch you!"
     
-    n "What did Bao Shang do at the Factory?"
+    n "1. What did Bao Shang do at the Factory?"
     show image "bao shang"
     menu timeout 45 seconds:
         "Security Guard":
+            $ player_name = username()
             $ score_1 = score_1 + 1
-            n "Correct!"
+            bao "That's right, $player_name!"
         "Accountant":
             n "Incorrect!"
+            bao "Numbers make me dizzy. Me keeping the books would be a disaster!"
         "Loom Operator":
             n "Incorrect!"
+            bao "I patroled the perimeters. I didn't work inside!"
         "Designer":
             n "Incorrect!"
+            bao "That's way too fancy for me."
         timeout:
             n "Time's up! No points for this one."
+            bao "I thought that would be obvious. I must be really out of shape!"
 
-    n "What is Liu Min's job title?"
+    n "2. What is Liu Min's job title?"
     show image "liu min"
     menu timeout 45 seconds:
         "Loom Repairman":
+            $ player_name = username()
             n "Incorrect!"
+            min "That was Jin Fong's job!"
+            n "Uh, could I ask you to not give away answers?"
+            min "I just wanted to give $player_name a little help."
         "Model":
             n "Incorrect!"
+            min "Oh, Emperor above, I'm flattered!"
         "Dye Technician":
             $ score_1 = score_1 + 1
+            $ player_name = username()
             n "Correct!"
+            min "Wow, $player_name, you can tell!"
+            bao "They were eavesdropping on us! Of course they could tell."
+            min "But it shows that they paid attention! Not many people pay attention to us old folks today, isn't that right?"
+            cj "Yes, Min, good point."
         "Researcher":
             n "Incorrect!"
+            min "That's not quite right, but I would have liked to be a researcher."
         timeout:
-            n "Time's up! No points for this one."
+            n "Time's up! No point for this one."
+            min "Aww, don't be too harsh on our waiters! Their service has been great so far."
+    
+    n  "Hey, can y‘all quiet down? I gotta give them this quiz."
+    bao "Who are you to tell us what to do?"
+    cj  "There would be no story without us, you'd be unemployed!"
+    bgn "Like the wave of layoffs during privatization."
+    n   "..."
+    n   "Ok, y'all, sorry. I'll carry on."
 
-    n "What is Chai Baogen's job at the Factory?"
+    n "3. What is Chai Baogen's job at the Factory?"
     show image "chai baogen"
     menu timeout 45 seconds:
         "Political Commissar":
+            bgn "Me? Politics? I only cared about playing back then."
+            ld  "Are you implying you've changed ever since?"
+            bgn "No. I'm still like that!"
+            ld  "Yes, I could tell from your constellations that you are a free spirit by heart!"
+            bgn "Why, you're quite good, Master Lu!"
         "Loom Operator":
             $ score_1 = score_1 + 1
             n "Loom Operator is correct!"
+            bgn "Workin' on that loom all day, every day."
+            $ player_name = username()
+            bgn "I'll drink to that, $player_name!"
         "Cost Controls":
+            n   "That's not quite it."
+            bgn "The Fifth Unit only cared about quality back then, no matter the cost!"
+            yan "We're not from one of those private companies that cut corners."
+            bgn "I'll drink to that, Yan!"
         "Warehouse Manager":
+            bgn "I would have stolen so many things from the warehouse."
+            n   "Incorrect!"
+            bgn "You guys will get the hang on this soon."
         timeout:
             n "Time's up! No points for this one."
     
-    # n "What is Bai Yan's occupation?"
+    # n "4. What is Bai Yan's occupation?"
     # show image "bai yan"
 
-    n "What was Liang Guowei's job title?"
+    n "5. What was Liang Guowei's job title?"
     show image "liang guowei"
     menu timeout 45 seconds:
         "Loom Operator":
             n "Incorrect!"
+            bgn "Wow, the world would be upside down!"
+            bgn "Mr. Liu descends into the realm of mortals."
+            mg  "He wasn't even at the factory most days. He has his meetings!"
         "Political Commissar":
             $ score_1 = score_1 + 1
-            n "Political Commissar is correct!"
+            gw "Like a sheperd of a flock! Without the religious aspect, of course."
+            $ player_name = username()
+            gw "How could you tell, $player_name? Do I look the part?"
+            input "" into response:
+                case _:
+                    gw "Ah, I see. Thank you for helping me see another perspective."
         "Security Chief":
-            n "Incorrect!"
+            gw "I watched the minds of others, not their physiques."
         "Loom Mechanic":
-            n "Incorrect!"
+            gw "I was good at several things, but machines isn't one of them."
         timeout:
             n "Time's up! No points for this one."
+            gw "Don't be discouraged, servers! There is always a second chance."
+            n "But not on this question, I'm afraid."
         
-    n "What did Chai Mugen do at the factory?"
+    n "6. What did Chai Mugen do at the factory?"
     show image "chai mugen"
     menu timeout 45 seconds:
         "Cook":
             n "Incorrect!"
+            mg "Cook? I'd be a fine cook, but my parents wouldn't have liked that!"
+            gw "Cooks are also indispensible for the working class, Mugen. If I'd known that, I would have talked to your parents!"
+            bao "Are you saying this because he would cause less trouble as a cook?"
+            gw "Perhaps Mr.Chai would find the kitchen an outlet for his creativity."
         "Postman":
             n "Incorrect!"
+            mg "That would be fun, riding on a bike and delivering love letters."
+            min "There are also other types of letters, Mugen!"
+            mg "Of course, of course, but they are less interesting."
         "Loom Operator":
             $ score_1 = score_1 + 1
             n "Loom operator is correct!"
+            mg "With my brother, of course."
         "Security Guard":
             n "Incorrect!"
+            mg "Anyone could have guessed from my brother's job!"
+            mg "We always stuck together."
         timeout:
             n "Time's up! No points for this one."
     
-    n "What was Ping Zilian's occupation?"
+    n "7. What was Ping Zilian's occupation?"
     show image "ping zilian"
+    zl "Let me give you a little hint."
     menu timeout 45 seconds:
         "Model, of course":
             $ score_1 = score_1 + 1
-            n "Correct!"
+            n "Correct--Hey, you messed with the menu!"
+            zl "I put the rest in my pockets."
+            zl "They deserve this point, of course."
         timeout:
-            n "Time's up! No points for this one."
+            n "Time's up--Uh, how did you miss this one? Zilian messed with the menu!"
+            zl "I gave you an easy win, but you threw it away."
+            zl "Sigh! Such is the way."
 
 
-    n "What was Lu Da's old job at the Factory?"
+    n "8. What was Lu Da's old job at the Factory?"
     show image "lu da"
     menu timeout 45 seconds:
         "Warehouse Manager":
-            "Incorrect!"
+            n "Incorrect!"
+            ld "I did make sure only the good stuff went to the warehouse. You could give them this point!"
+            n  "That's not your job title though."
+            ld "Titles are less important than the essence of the action."
+            n  "No."
+            ld "Alright, it's your game."
         "Security Guard":
-            "Incorrect!"
+            ld "If I was, my divination could have helped Bao catch many thieves."
+            bao "I doubt it."
         "Loom Mechanic":
-            "Incorrect!"
+            ld "That's not quite it."
         "Quality Control":
-            "Quality Control is correct!"
+            $ player_name = username()
+            ld "Hey, $player_name, that is correct!"
             # score_1 = score_1 + 1
+            ld "From my mundane job, I picked up the divine technique."
+            ld "I have much thanks for the Factory."
         timeout:
             n "Time's up! No points for this one."
     
-    n "What was Jin Fong doing at the Factory?"
+    jf "Look, 'narrator', let us do the last two."
+    cj "We basically know how to ask these questions."
+    n "Uhh, but ..."
+    n "Fine, I'll just track the scores."
+
+    jf "Alright, waiters! What was I, Jin Fong, doing at the Factory?"
     show image "jin fong"
     menu timeout 45 seconds:
         "Floor Manager":
-            n "Incorrect!"
+            jf "Floor manager! My, that sort of title would be against the spirit of the Factory."
+            $ player_name = username()
+            jf "Back then we didn't have such hierarchies in place, $ player_name."
         "Loom Operator":
-            n "Incorrect!"
+            jf "What a close call! But no score. I fixed the loom instead of working with it."
         "Loom Repairs":
             $ score_1 = score_1 + 1
-            n "Loom repairs is correct!"
+            $ player_name = username()
+            jf "Hey, $player_name, that's correct!"
+            jf "How observant of you."
         "Security Guard":
-            n "Incorrect!"
+            jf "Incorrect!"
+            jf "Do I look like a security guard? I would make people feel very secure, I fear."
         timeout:
             n "Time's up! No points for this one."
 
-    n "What did Cheng Ji do at the Factory?"
+    cj "Oh, I'm last!"
+    gw "They saved the best for last, of course."
+    cj "Guowei, you flatter me!"
+    cj "Drum roll ......"
+    cj "What did Cheng Ji do at the Factory?"
     show image "cheng ji"
     menu timeout 45 seconds:
         "Punchcard Programmer":
             $ score_1 = score_1 + 1
-            n "Punchcard programmer is correct!"
+            cj "That's correct!"
+            bao "The brains of our operation."
+            bgn "If we were in a superhero movie, Cheng Ji would be the master planner."
+            mg  "Or like Moriaty from the Holmes novels."
         "Electrician":
-            n "Incorrect!"
+            cj "Hmm, maybe you have a misconception."
+            cj "Programming actually pre-dated electricity!"
         "Political Commissar":
             n "Incorrect!"
+            cj "Look at Guowei's face! His stern expressions embody a political commissar."
+            cj "I was just a member of his flock--a worker."
         "Cook":
-            n "Incorrect!"
+            jf "I wouldn't let Cheng Ji near a kitchen!"
+            bgn "It's true! She even managed to burn that pack of Instant Noodles."
+            ld "She must have a fiery soul. Her energy overpowered the water in the Instant Noodles."
+            cj "Okay, guys, that was one time!"
         timeout:
             n "Time's up! No points for this one."
     
-    n "That's it!"
-    n "Your total score is $score_1 out of 8."
-    n "Not too bad!"
-    n "There will be more to this story later."
-    n "Thanks for playing!"
+    min "Hey, narrator, that's it! Did you keep track of the score?"
+    cj "They got $score_1 out of 9, if you want to know."
+    wait 3
+    bao "Looks like he's gone!"
+    gw  "Congratulations, servers! Your result is not too shabby."
+    gw  "Members of the Fifth Unit, let's salute our waiters. Without their labor, we wouldn't be enjoying our food tonight!"
+    yan "Horrah for our waiters!"
+    n   "They make a toast."
+    mg  "Hey, you're back!"
+    n   "I was setting up some things."
+    bgn "What does that mean?"
+    n   "This story will be continued."
+    n   "There will be more to come!"
 
+    zl  "Well, you guys couldn't be lovelier. A Toast to you!"
+    mg  "Young ones, take care of your body and spirit!"
+    bgn "You are the future of our nation!"
+    cj  "You should learn to use a computer! I think that'll give you an edge in the future."
+    min "Your futures are like the open sea; there's much to be found! Don't forget about us old folks."
+    ld  "I personally won't be offended if you forget us. Young people should have their own fun. Cheers to fun!"
+    jf  "I'll drink to that! Call it happiness, Master Lu, while you are at it. May you find happiness."
 
+    n   "Their glasses clatter together."
+    n   "Their voices echo and become faint."
+    n   "At last, you only feel the warmth of the drinks you've had."
+    n   "But the night is still young."
+    n   "These people spoke of regrets, of something happened in the past."
+    n   "What struck them? Did that fateful day make them who they are today?"
+    n   "----End of the Demo, for now---"
 
 
 label table_1_start(channel="Apple Blossoms"):
@@ -278,21 +416,7 @@ label table_3_start(channel="Autumn Clouds"):
     n   "Everyone found this funny."
     mg  "Come on, server, get us a bottle opener so we can get started!"
     n   "He pulls out a brown paper bag, which has a big bottle of unbranded liquor."
-    button "Tell them about the Outside Drink Policy":
-        n "Well, no outside drinks are allowed. You tell them that."
-        n "It is not well received. Several people begin shouting at once."
-        jf "Come on, young server, let us have some fun!"
-        mg "We know all about the policy! I can give you a tip to turn an eye."
-        yan "See, young server, the organizers have made a mistake; they put the four alcoholics at the same table! We are just doing what we do."
-        bgn "There's no fun in that. I've never drank since what happened in 87."
-        wait 2
-        n "Everyone speaks more softly now."
-        jf "Sorry to hear that, Baogen. I know you still blame yourself, but it's not your fault!"
-        mg "We all should have stayed at our posts that day."
-        mg "But our nerves were tighted for so long, making that first batch! We all wanted a break!"
-        yan "Even Commisar Liu was slacking off instead of hanging at the library."
-        bgn "You guys drink what you want. I'll have some Cola."
-        n "She casts a questioning glance in your direction. Will you let them drink this?"
+    n   "The policy is no outside drinks. But what will you do?"
     
     menu:
         "Call my manager":
@@ -307,6 +431,12 @@ label table_3_start(channel="Autumn Clouds"):
         "Absolutely not":
             n "Everyone glares at you. They go order drinks at the counter."
     
+    bgn "Well, as you know, I don't drink anymore. You guys have fun."
+    n  "Everyone seems to be reminded of something serious. They speak more softly for a while."
+    jf "Sorry to hear that, Baogen. I know you still blame yourself, but it's not your fault!"
+    mg "We all should have stayed at our posts that day."
+    mg "But we were working overtime for so long, getting that first batch to work! We all wanted a break!"
+    yan "Even Commisar Liu was slacking off instead of studying at the library."
     bgn  "You guys should wait for the appetizers to get here, at least!"
     yan  "Don't worry, Mr.Chai, I have some peanuts."
     mg  "Just like back in the day!"
@@ -316,12 +446,6 @@ label table_3_start(channel="Autumn Clouds"):
 
     n   "The appetizers arrived on a trolley, rolled in by one of your colleagues."
     jump table_3_appetizers
-
-# number of appetizers served per table
-# gates jump to quiz and act II
-default na_1 = 0
-default na_2 = 0
-default na_3 = 0
 
 # what appetizers were served at table 1
 # used to grey out the menu options
@@ -354,8 +478,11 @@ label table_1_appetizers(channel="Apple Blossoms"):
         "Serve $app_3" if a3_1 == 0:
             $ a3_1 = 1
             $ na_1 = na_1 + 1
+            zl  "Hey, Cheng Ji. How'd you learn to program the loom anyways?"
             cj  "I have my teacher to thank. Before her lessons, I had no idea what programming was! I was good at embroidery by hand, but that's not really related to programming patterns on the loom."
-            yan  "I hear it's all done on computers nowadays."
+            zl  "Wait, the same Soviet expert? She was teaching me too; she said our Unit needed someone to show off what we made, and that I was tall. So she taught me how to model."
+            cj  "I think she liked hanging out with us two because she was bored. Not that many people spoke Russian, even back then."
+            zl  "But the three of us never hanged out together. How odd!"
             if na_1 < num_apps:
                 jump table_1_appetizers
 
@@ -364,34 +491,59 @@ default a1_2 = 0
 default a2_2 = 0
 default a3_2 = 0
 label table_2_appetizers(channel="Bamboo Forest"):
-    menu:
+    menu timeout 30 seconds:
         "Serve $app_1" if a1_2 == 0:
             $ a1_2 = 1
             $ na_2 = na_2 + 1
-            # text here
+            gw "Let's get to work!"
+            n  "He takes his chopsticks and gets himself a serving."
+            ld "Yes, Commissar Liu, of course, Commissar!"
+            gw "Master Lu, I wasn't commanding you!"
+            ld "And I wasn't following an order. I just agreed with you."
+            min "Aww, you two comedians!"
             if na_2 < num_apps:
                 jump table_2_appetizers
         "Serve $app_2" if a2_2 == 0:
             $ a2_2 = 1
             $ na_2 = na_2 + 1
+            min "This is my favorite! How considerate of them."
+            ld  "Hate to bring it to you, Min, I think they just picked a popular and traditional dish."
+            min "That's probably true! But I feel better thinking of it like that."
             if na_2 < num_apps:
                 jump table_2_appetizers
         "Serve $app_3" if a3_2 == 0:
             $ a3_2 = 1
             $ na_2 = na_2 + 1
-            # text here
+            ld  "If we got this back at the Factory cafeteria, I'd be thanking the Fates!"
+            gw  "I think they did have some from time to time?"
+            min "Ah, Guowei, I think you got the good meals, being a Commissar and all! Didn't Bai Yan also get food first?"
+            n   "Guowei becomes flustered. He drinks his tea."
+            gw  "I didn't know about that! They should have treated everyone equally."
+            gw  "I was a Commissar and Bai Yan was an accountant, but that doesn't make us special!"
+            ld  "Well, you guys needed the smarts! Eating fish makes you clever and definitely helps in your cerebral efforts."
             if na_2 < num_apps:
                 jump table_2_appetizers
+        timeout:
+            n "You were away from this table."
+            n "One of your colleagues filled in and served the appetizers."
+            $ na_2 = num_apps
 
 default a1_3 = 0
 default a2_3 = 0
 default a3_3 = 0
 label table_3_appetizers(channel="Autumn Clouds"):
-    menu:
+    menu timeout 30 seconds:
         "Serve $app_1" if a1_3 == 0:
             $ a1_3 = 1
             $ na_3 = na_3 + 1
-            n "You serve the $app_1."
+            bgn "Are they saving costs? I was expecting some meat!"
+            jf "Mugen, at your age, you should eat more vegetables. This tofu is great for your health."
+            bgn "Ha, health. My doctor shudders at my blood pressure and lungs."
+            bgn "My aunt smoked cigars every day and ate all the unhealthy foods."
+            bgn "She lived to be 103 though."
+            bgn "You only live once; gotta enjoy what you get."
+            cj  "Cheers, Mugen! To each their own."
+            n   "They drink."
             if na_3 < num_apps:
                 jump table_3_appetizers
         "Serve $app_2" if a2_3 == 0:
@@ -411,6 +563,16 @@ label table_3_appetizers(channel="Autumn Clouds"):
             $ a3_3 = 1
             $ na_3 = na_3 + 1
             n "You serve the $app_3."
-
+            cj "Haha, a Hangzhou classic!"
+            jf "After so many years, I'm still not used to it."
+            mg "How do you northerners live, eating no fish?"
+            cj "I would go crazy without seafood."
+            jf "It's just so annoying! That Soviet expert didn't like it either."
+            bgn "Well, she choked on the fish bones that one time! She was teaching Zilian how to model, and he had to carry her to the nursing station!"
+            cj  "That's true! We thought she swooned at first."
             if na_3 < num_apps:
                 jump table_3_appetizers
+        timeout:
+            n "You were away from this table."
+            n "One of your colleagues filled in and served the appetizers."
+            $ na_2 = num_apps

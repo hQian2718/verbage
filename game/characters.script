@@ -47,7 +47,7 @@ define gw = Character(
     color="#db0000",
     image="liang guowei"
 )
-# 陈芳
+# 金芳
 define jf = Character(
     "Jin Fong",
     color="#da6200",
