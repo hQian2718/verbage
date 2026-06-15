@@ -1,7 +1,34 @@
-# Dialog Bot MVP
+# Verbage
 
-This repo now includes a Python `discord.py` bot that loads every `*.script`
-file in `game/` and starts at `main.setup`.
+Verbage is a Discord bot for telling interactive stories and running small
+games inside a Discord server. Writers describe the story in a Ren'Py-inspired
+`.script` language, and players experience it through Discord messages,
+character webhooks, buttons, menus, typed responses, images, and multiple text
+channels.
+
+If you have used Twine or Ren'Py, the basic loop will feel familiar: write a
+script, check it for errors, run `/start`, and let players choose their way
+through the story. Verbage's twist is that Discord is the stage. A scene can
+happen in one channel, several players can split up into different rooms, and
+the resulting channels become a readable transcript of the path they took.
+
+Use Verbage when you want to:
+
+- Write interactive fiction and text game experiences that is
+  played where your players already talk.
+- Run multiplayer scenes, showing different conversations at
+  the same time.
+- Use Discord-native interactions to drive the story.
+- All while keeping an author-first workflow: 
+    - easy-to-learn syntax, 
+    - image assets, 
+    - local validation, 
+    - and repeatable tests.
+
+The default game directory is `game/`. The bot loads every `*.script` file there
+and starts at `label setup:` in `main.script`. For an author-facing walkthrough,
+see [tutorial.md](tutorial.md). For implementation semantics, see
+[docs/runtime-semantics.md](docs/runtime-semantics.md).
 
 ## Setup
 
@@ -15,6 +42,7 @@ Create `.env` values:
 
 ```sh
 DISCORD_TOKEN=...
+GAME_DIR=game
 GAME_CATEGORY_NAME=Dialog Game
 GAME_CHANNEL_TOPIC=Dialog bot game channel
 GAME_DEFAULT_CHANNEL=Game
@@ -51,7 +79,7 @@ and channels. Updating the app's install settings does not always update an
 already-installed bot; re-authorize/reinvite it, and make sure category or
 channel permission overwrites are not denying `Manage Webhooks`.
 
-## Run
+## Running
 
 ```sh
 python bot.py
@@ -99,47 +127,12 @@ in one development server, set `DEV_GUILD_ID` to that server id. When
 `DEV_GUILD_ID` is set, command sync is limited to that one server for the
 current bot process. Leave it blank or unset in production.
 
-Game state is in memory for the MVP.
+Game state is currently stored in memory.
 
 Each server gets its own active game session. A restart drops in-memory sessions
 for all servers, but existing Discord channels and transcripts remain.
 
-## Deploy on AWS Lightsail
 
-Create an Ubuntu Lightsail instance, clone the repo, install dependencies, and
-run the bot under `systemd`:
-
-```sh
-sudo apt update
-sudo apt install -y git python3 python3-venv
-sudo git clone <repo-url> /opt/dialog-bot
-sudo chown -R ubuntu:ubuntu /opt/dialog-bot
-cd /opt/dialog-bot
-python3 -m venv .venv
-.venv/bin/pip install -e .
-cp .env.example .env
-nano .env
-.venv/bin/python check.py
-```
-
-Copy `deploy/dialog-bot.service` to `/etc/systemd/system/dialog-bot.service`:
-
-```sh
-sudo cp deploy/dialog-bot.service /etc/systemd/system/dialog-bot.service
-```
-
-If the repo is not installed at `/opt/dialog-bot`, update `WorkingDirectory`,
-`EnvironmentFile`, and `ExecStart` in the service file.
-
-```sh
-sudo systemctl daemon-reload
-sudo systemctl enable dialog-bot
-deploy/deploy.sh
-journalctl -u dialog-bot -f
-```
-
-The bot only needs outbound network access to Discord; no public inbound
-application port is required.
 
 When a game finishes normally or is stopped with `/stop`, the bot posts a final
 cleanup menu in the last story channel. Choosing **Delete game channels**
@@ -157,7 +150,7 @@ outgoing sends. Permission errors and bad requests are not retried.
 
 ## Script Checking
 
-Run the local checker before `/start` when editing scripts:
+Run the local checker to validate your scripts:
 
 ```sh
 python3 check.py
@@ -205,6 +198,60 @@ Run local tests with:
 ```sh
 python3 -m unittest discover -s tests
 ```
+## Extending the Syntax of Verbage Scripts
+
+When adding a new script statement or command, keep the language pipeline in
+sync from parser to Discord adapter. A good small change touches these places:
+
+1. Add or update a statement dataclass in `dialogbot/model.py`.
+   Keep it dependency-light; this is the parsed AST shape.
+
+2. Parse the syntax in `dialogbot/parser.py`.
+   Most command entry points start in `Parser.parse_statement()`. Add a focused
+   parser method, emit helpful load-time errors, and update
+   `validate_statements()` for references, interpolation, labels, variables, or
+   assets that can be checked before the game starts.
+
+3. Execute the statement in `dialogbot/runtime.py`.
+   Add a branch in `GameSession.execute_statement()`. Runtime code should speak
+   only in script concepts such as channels, labels, variables, and user
+   actions.
+
+4. Extend `DialogIO` only if the command needs a new kind of external IO.
+   Add the protocol method in `dialogbot/io.py`, then implement it in both
+   `dialogbot/discord_io.py` and `dialogbot/local_io.py`. The local adapter is
+   what makes the feature testable without Discord.
+
+5. Update helper tools.
+   If the new statement affects timing or control flow, update `estimate.py`.
+   Make sure `check.py` catches broken scripts through parser validation rather
+   than letting failures happen during `/start`.
+
+6. Add focused tests in `tests/test_scripts.py`.
+   Prefer small inline scripts using `LocalDialogIO`. Test the happy path and at
+   least one useful author error. If the feature affects Discord-only behavior,
+   keep the runtime behavior behind `DialogIO` and assert against local events.
+
+7. Document the syntax.
+   Update [docs/runtime-semantics.md](docs/runtime-semantics.md) for
+   implementers and [tutorial.md](tutorial.md) or
+   `game_example/language_proposal.md` for writers.
+
+8. Run the checks:
+
+```sh
+python3 -m unittest discover -s tests
+python3 check.py game
+python3 check.py game_example
+python3 -m py_compile bot.py dialogbot/*.py
+```
+
+Recent examples to copy from:
+
+- `show image "asset"` added a model node, parser validation, runtime dispatch,
+  Discord/local adapter output, estimator handling, tests, and docs.
+- Menu option interpolation reused existing dialogue interpolation, so it only
+  needed runtime rendering, parser validation, tests, and docs.
 
 ## Maintainer Docs
 
@@ -215,3 +262,5 @@ python3 -m unittest discover -s tests
   point of view.
 - [Local Testing](docs/local-testing.md) explains how to test scripts and
   runtime behavior without Discord.
+- [Deployment](docs/deployment.md) shows an example of how to deploy Verbage to
+  a virtual machine so that it runs persistently. 

@@ -21,6 +21,14 @@ As the game maker, you should download the code of Verbage. You can get it here:
 (Github link)
 (Itch.io link)
 
+You need Python installed on your computer. Verbage recommends Python 3.12.
+
+You can set up everything and check your installation via these commands. Run them by pasting them into the terminal.
+
+```sh
+
+```
+
 ## The Syntax of Verbage
 
 Verbage scripts are plain text files ending in `.script`. You write scenes in the order they should happen, with choices and logic where players can change the story.
@@ -501,10 +509,7 @@ n "The red door has no handle."
 
 ## Deploying and Running the Game
 
-To run the game, you must be running the bot program on your computer and point it to your Discord server.
-
-1. Download the source code of Verbage.
-2. Put all of your scripts and images into the `game` directory.
+To run the game, you must be running the bot program on your computer and point it to your Discord server. This 
 3. Go to your Discord Developer Portal [here](https://discord.com/developers/home) and create a new application.
 4. Create a `.env` file and fill in environmental variables. These variables allow the bot to find your server and send messages to Discord.
 5. Go to your server or make a new one.

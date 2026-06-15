@@ -59,6 +59,10 @@ class DialogBot(commands.Bot):
 bot = DialogBot()
 
 
+def configured_game_dir() -> str:
+    return os.getenv("GAME_DIR", "game")
+
+
 def format_script_load_error(exc: ScriptLoadError, max_chars: int = 1500) -> str:
     text = str(exc)
     if len(text) > max_chars:
@@ -75,7 +79,7 @@ def guild_only(interaction: discord.Interaction) -> bool:
 async def start(interaction: discord.Interaction) -> None:
     await interaction.response.defer(thinking=True)
     try:
-        game = load_game("game")
+        game = load_game(configured_game_dir())
     except ScriptLoadError as exc:
         LOGGER.error("Script load failed during /start:\n%s", exc)
         await interaction.followup.send(format_script_load_error(exc))
@@ -101,7 +105,7 @@ async def stop(interaction: discord.Interaction) -> None:
 async def reload_scripts(interaction: discord.Interaction) -> None:
     await interaction.response.defer(thinking=True, ephemeral=True)
     try:
-        game = load_game("game")
+        game = load_game(configured_game_dir())
     except ScriptLoadError as exc:
         LOGGER.error("Script load failed during /reload:\n%s", exc)
         await interaction.followup.send(format_script_load_error(exc), ephemeral=True)

@@ -1,0 +1,199 @@
+define n = Character(
+    "Narrator",
+    color="#a48335",
+)
+
+define jia = Character(
+    "Jia Li",
+    color="#b16399",
+    image="jiali",
+)
+
+default door_locked = True
+default clues_found = 0
+default code_entered = ""
+default correct_code = "dead beef"
+default restroom_action = ""
+default push_count = 0
+default investigator = ""
+
+label setup:
+    jump capture_01_minimal
+
+label capture_01_minimal(channel="Tutorial Capture"):
+    "You stand outside a restaurant."
+    button "Next capture"
+    jump capture_03_character
+
+label capture_03_character(channel="Tutorial Capture"):
+    jia "Welcome. Your table is almost ready."
+    button "Next capture"
+    jump capture_04_channel
+
+label capture_04_channel(channel="Entrance"):
+    n "You stand outside a locked door."
+    n "There is a keypad beside the door."
+    button "Next capture"
+    jump capture_05_menu
+
+label capture_05_menu(channel="Entrance"):
+    n "The keypad glows blue."
+    menu:
+        "Enter a code":
+            n "You reach for the keypad."
+        "Walk away":
+            n "You step back from the door."
+    n "The night feels colder now."
+    button "Next capture"
+    jump capture_06_locked_menu
+
+label capture_06_locked_menu(channel="Entrance"):
+    $ door_locked = True
+    n "First screenshot: the door is locked."
+    menu:
+        "Open the door" if not door_locked:
+            n "You enter the restaurant's basement."
+        "Enter a code" if door_locked:
+            n "The lock snaps open."
+            $ door_locked = False
+            jump capture_06_unlocked_menu
+
+label capture_06_unlocked_menu(channel="Entrance"):
+    n "Second screenshot: the door is now unlocked."
+    menu:
+        "Open the door" if not door_locked:
+            n "You enter the restaurant's basement."
+        "Enter a code" if door_locked:
+            n "The keypad waits."
+    button "Next capture"
+    jump capture_07_variables
+
+label capture_07_variables(channel="Great Hall"):
+    $ clues_found = 0
+    n "Report with no clues:"
+    if clues_found >= 3:
+        n "You have enough evidence to accuse someone."
+    elif clues_found > 0:
+        n "You have a theory, but not enough proof."
+    else:
+        n "You are still completely in the dark."
+    $ clues_found = 1
+    n "Report with one clue:"
+    if clues_found >= 3:
+        n "You have enough evidence to accuse someone."
+    elif clues_found > 0:
+        n "You have a theory, but not enough proof."
+    else:
+        n "You are still completely in the dark."
+    $ clues_found = 3
+    n "Report with enough clues:"
+    if clues_found >= 3:
+        n "You have enough evidence to accuse someone."
+    elif clues_found > 0:
+        n "You have a theory, but not enough proof."
+    else:
+        n "You are still completely in the dark."
+    button "Next capture"
+    jump capture_08_image
+
+label capture_08_image(channel="Entrance"):
+    show image "https://placehold.co/1200x600.png?text=Restaurant+Exterior":
+        caption "The restaurant waits under the old willow tree."
+    button "Next capture"
+    jump capture_09_timed_menu
+
+label capture_09_timed_menu(channel="Dining Room"):
+    n "You have only a moment to decide."
+    menu timeout 3:
+        "Interrupt the conversation":
+            n "You clear your throat."
+        "Keep listening":
+            n "You stay quiet."
+        timeout:
+            n "The moment passes."
+    button "Next capture"
+    jump capture_10_code_input
+
+label capture_10_code_input(channel="Entrance"):
+    input "Enter the code on the keypad." into code_entered:
+        case correct_code:
+            n "The lock snaps open."
+        case _:
+            n "The keypad flashes red."
+    button "Next capture"
+    jump capture_11_contains_input
+
+label capture_11_contains_input(channel="Restroom"):
+    input "What do you inspect?" into restroom_action:
+        case contains "portrait" or "painting" or "winnie":
+            n "You find a hidden button behind the frame."
+        case _:
+            n "You do not find anything unusual."
+    button "Next capture"
+    jump capture_12_persistent_menu
+
+label capture_12_persistent_menu(channel="Basement"):
+    $ push_count = 0
+    n "The iron door is too heavy for one person."
+    persistent menu:
+        "Push together":
+            $ push_count += 1
+            $ investigator = username()
+            n "$investigator throws their shoulder against the door."
+            if push_count >= 3:
+                n "With everyone pushing, the door finally opens."
+                jump capture_13_persistent_timeout
+        "Look for another way":
+            n "You search the walls, but find no other passage."
+
+label capture_13_persistent_timeout(channel="Basement"):
+    n "Do not click this menu. Wait for it to expire."
+    persistent menu timeout 3:
+        "Hold the door":
+            $ investigator = username()
+            n "$investigator keeps the door from closing."
+        timeout:
+            n "The door slams shut."
+    button "Next capture"
+    jump capture_14_multi_channel
+
+label capture_14_multi_channel(channel="Great Hall"):
+    n "The party splits up to search the restaurant."
+    run (kitchen, restroom, banquet_hall)
+    n "Everyone returns to the Great Hall."
+    button "Next capture"
+    jump capture_15_button
+
+label kitchen(channel="Kitchen"):
+    n "The kitchen is hot and noisy."
+    button "Look around"
+    n "You find a burned receipt."
+    channel link "Return to Great Hall" to "Great Hall"
+
+label restroom(channel="Restroom"):
+    n "The restroom is quiet."
+    button "Inspect the mirror"
+    n "Someone wrote a number in the fogged glass."
+    channel link "Return to Great Hall" to "Great Hall"
+
+label banquet_hall(channel="Banquet Hall"):
+    n "The tables are set for a banquet."
+    button "Check under the table"
+    n "You find a torn envelope."
+    channel link "Return to Great Hall" to "Great Hall"
+
+label capture_15_button(channel="Study"):
+    button "Look around":
+        $ investigator = username()
+        n "$(investigator) notices fresh footprints."
+    button "Next capture"
+    jump capture_16_clear_before
+
+label capture_16_clear_before(channel="Restroom"):
+    n "Old message one: the sink is running."
+    n "Old message two: the mirror is fogged."
+    n "Old message three: muddy footprints cross the tile."
+    button "Clear Restroom now"
+    clear channel "Restroom"
+    n "The Restroom channel is clear and ready for the next scene."
+    n "Tutorial capture sequence complete."
