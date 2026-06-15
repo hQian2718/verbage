@@ -10,7 +10,7 @@ EnvironmentFile=/opt/dialog-bot/.env
 ExecStart=/opt/dialog-bot/.venv/bin/python /opt/dialog-bot/bot.py
 Restart=always
 RestartSec=10
-User=ubuntu
+User=bitnami
 
 [Install]
 WantedBy=multi-user.target
