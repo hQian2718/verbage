@@ -28,21 +28,25 @@ default response = ""
 default player_name = ""
 label quiz_1(channel="Job Quiz"):
     n "Select a captain amongst yourselves! Only the captain can answer questions."
-    n "Keep going when you are ready."
-    button "Begin the Quiz":
-        zl "What's happening here?"
-        bgn "Our waiters have gathered for something ..."
-        n  "What? Players, are you seeing this?"
-        input "" into response:
-            case _:
-                $ player_name = username()
-                jf "It's $player_name! You are one of the servers?"
-                wait 3
-                jf "Hello!"
-        n  "How are you here? The story is supposed to be on pause!"
-        bao "What is that supposed to mean?"
-        n   "Uh, nothing."
-        gw  "We'll just watch you!"
+    n "Captain, tell me when the players are ready."
+    input "" into response:
+        case _:
+            $ player_name = username()
+            n "Hello, captain $player_name!"
+
+    zl "What's happening here?"
+    bgn "Our waiters have gathered for something ..."
+    n  "What? Players, are you seeing this?"
+    input "" into response:
+        case _:
+            $ player_name = username()
+            jf "It's $player_name! You are one of the servers?"
+            wait 3
+            jf "Hello!"
+    n  "How are you here? The story is supposed to be on pause!"
+    bao "What is that supposed to mean?"
+    n   "Uh, nothing."
+    gw  "We'll just watch you!"
     
     n "1. What did Bao Shang do at the Factory?"
     show image "bao shang"
@@ -132,7 +136,8 @@ label quiz_1(channel="Job Quiz"):
     show image "liang guowei"
     menu timeout 45 seconds:
         "Loom Operator":
-            n "Incorrect!"
+            bgn "Incorrect!"
+            n   "Incorrect!"
             bgn "Wow, the world would be upside down!"
             bgn "Mr. Liu descends into the realm of mortals."
             mg  "He wasn't even at the factory most days. He has his meetings!"
@@ -143,9 +148,10 @@ label quiz_1(channel="Job Quiz"):
             gw "How could you tell, $player_name? Do I look the part?"
             input "" into response:
                 case _:
-                    gw "Ah, I see. Thank you for helping me see another perspective."
+                    gw "Thank you for giving me another perspective."
         "Security Chief":
             gw "I watched the minds of others, not their physiques."
+            n  "Not quite."
         "Loom Mechanic":
             gw "I was good at several things, but machines isn't one of them."
         timeout:
@@ -157,6 +163,7 @@ label quiz_1(channel="Job Quiz"):
     show image "chai mugen"
     menu timeout 45 seconds:
         "Cook":
+            mg "Incorrect!"
             n "Incorrect!"
             mg "Cook? I'd be a fine cook, but my parents wouldn't have liked that!"
             gw "Cooks are also indispensible for the working class, Mugen. If I'd known that, I would have talked to your parents!"
@@ -185,8 +192,10 @@ label quiz_1(channel="Job Quiz"):
         "Model, of course":
             $ score_1 = score_1 + 1
             n "Correct--Hey, you messed with the menu!"
-            zl "I put the rest in my pockets."
+            zl "I put the buttons in my pockets."
             zl "They deserve this point, of course."
+            n "Uhh, that's not how the game works? But there's nothing I can do now."
+            zl "Exactly. Carry on."
         timeout:
             n "Time's up--Uh, how did you miss this one? Zilian messed with the menu!"
             zl "I gave you an easy win, but you threw it away."
@@ -453,7 +462,7 @@ default a1_1 = 0
 default a2_1 = 0
 default a3_1 = 0
 label table_1_appetizers(channel="Apple Blossoms"):
-    menu:
+    menu timeout 30 seconds:
         "Serve $app_1" if a1_1 == 0:
             $ a1_1 = 1
             $ na_1 = na_1 + 1
@@ -485,7 +494,14 @@ label table_1_appetizers(channel="Apple Blossoms"):
             zl  "But the three of us never hanged out together. How odd!"
             if na_1 < num_apps:
                 jump table_1_appetizers
-
+        timeout:
+            n "You were away from this table."
+            n "One of your colleagues filled in and served the appetizers."
+            $ na_2 = num_apps
+    
+    n "They enjoy the appetizers."
+    channel link "Go to the Quiz" to "Job Quiz"
+    
 
 default a1_2 = 0
 default a2_2 = 0
@@ -527,6 +543,10 @@ label table_2_appetizers(channel="Bamboo Forest"):
             n "You were away from this table."
             n "One of your colleagues filled in and served the appetizers."
             $ na_2 = num_apps
+
+    n "They enjoy the appetizers."
+    channel link "Go to the Quiz" to "Job Quiz"
+
 
 default a1_3 = 0
 default a2_3 = 0
@@ -576,3 +596,6 @@ label table_3_appetizers(channel="Autumn Clouds"):
             n "You were away from this table."
             n "One of your colleagues filled in and served the appetizers."
             $ na_2 = num_apps
+
+    n "They enjoy the appetizers."
+    channel link "Go to the Quiz" to "Job Quiz"
