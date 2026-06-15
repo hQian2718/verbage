@@ -4,15 +4,20 @@ title: Quickstart to Verbage
 description: Learn how to write and run interactive Discord stories with Verbage.
 ---
 
+<!--
+Copyright (C) 2026 Kuan Qian
+SPDX-License-Identifier: GPL-3.0-only
+-->
+
 ## What Is Verbage?
 
 Verbage is a Discord bot for telling interactive stories and running text games in a Discord server. Players can read dialog, but they can also make choices, type responses to NPCs, and make the story their own. 
 
 If you have used Twine or Ren'Py, the idea will feel familiar: you write a script, Verbage checks it, and a player starts it with `/start`. However, Verbage does a couple of unique things.
 
-- Unlike most visual novels or hypertext stories, Verbage lets you write for multiple players.
-- Multiple scenes can happen at thgie same time, in multiple text channels.
-- After the players finish the story, their path through the tale is saved and can be viewed later.
+- Unlike most visual novels or hypertext stories, Verbage lets you write singleplayer or multiplayer games.
+- Multiple scenes can happen at the same time, in multiple text channels.
+- After the players finish the story, their unique story is saved as message history.
 
 If this intrigues you, you should use Verbage!
 

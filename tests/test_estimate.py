@@ -1,3 +1,6 @@
+# Copyright (C) 2026 Kuan Qian
+# SPDX-License-Identifier: GPL-3.0-only
+
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory

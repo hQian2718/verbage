@@ -1,3 +1,8 @@
+<!--
+Copyright (C) 2026 Kuan Qian
+SPDX-License-Identifier: GPL-3.0-only
+-->
+
 # Tutorial Capture Game
 
 This folder contains a small Verbage game for taking screenshots used by
