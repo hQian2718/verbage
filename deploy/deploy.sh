@@ -7,6 +7,7 @@ set -euo pipefail
 APP_DIR="${APP_DIR:-/opt/dialog-bot}"
 BRANCH="${BRANCH:-main}"
 REMOTE="${REMOTE:-origin}"
+# One or more systemd services, space separated, e.g. "dialog-bot verbage-web".
 SERVICE_NAME="${SERVICE_NAME:-dialog-bot}"
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 
@@ -57,14 +58,17 @@ log "Installing project"
 
 log "Checking scripts"
 .venv/bin/python check.py
+.venv/bin/python check.py game_web
 
 log "Compiling Python sources"
-.venv/bin/python -m compileall -q bot.py check.py estimate.py dialogbot
+.venv/bin/python -m compileall -q bot.py web.py check.py estimate.py dialogbot
 
-log "Restarting $SERVICE_NAME"
-run_sudo systemctl restart "$SERVICE_NAME"
+for service in $SERVICE_NAME; do
+  log "Restarting $service"
+  run_sudo systemctl restart "$service"
 
-log "Service status"
-run_sudo systemctl --no-pager --full status "$SERVICE_NAME"
+  log "Service status"
+  run_sudo systemctl --no-pager --full status "$service"
+done
 
 log "Done"

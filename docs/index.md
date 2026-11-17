@@ -558,5 +558,6 @@ You can also read about the project from these docs:
 - [Language syntax](language_syntax.md) is the complete reference for formatting `.script` files.
 - [Runtime semantics](runtime-semantics.md) explains what each command does while the game is running.
 - [Architecture](architecture.md) gives a map of the parser, runtime, Discord adapter, and local testing adapter.
+- [Web frontend](web.md) shows how to serve the game to browsers, without Discord.
 - [Local testing](local-testing.md) shows how to run scripts without Discord, using local mocks and saved output.
 - [Deployment](deployment.md) covers the steps for running Verbage on a server.

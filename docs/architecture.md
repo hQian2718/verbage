@@ -52,6 +52,12 @@ both adapters, then call the protocol from the runtime.
   - Owns channel/category creation, webhooks, Discord buttons, Discord menus,
     message waits, typing indicators, and channel purging.
 
+- `web.py`, `dialogbot/web_server.py`, `dialogbot/web_io.py`, `web/`
+  - Browser frontend. `web_io.py` is a `DialogIO` adapter that keeps a
+    renderable transcript in memory; `web_server.py` serves the page and one
+    websocket per browser; `web/` holds the static HTML, CSS, and JavaScript.
+  - See [web.md](web.md).
+
 - `dialogbot/local_io.py`
   - Local implementation of `DialogIO`.
   - Writes JSONL transcripts and accepts queued inputs/clicks.
