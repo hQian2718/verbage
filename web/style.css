@@ -102,6 +102,18 @@ input[type="text"] {
 }
 .card .logo { align-self: center; }
 .card h1 { margin: 0; font-size: 2rem; letter-spacing: 0.01em; text-align: center; }
+
+.links { display: flex; justify-content: center; gap: 0.5rem; }
+.link-button {
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: var(--raised);
+  color: var(--ink);
+  padding: 0.25rem 0.9rem;
+  font-size: 0.85rem;
+  text-decoration: none;
+}
+.link-button:hover { background: var(--hover); }
 .card .lede { margin: 0 0 0.5rem; color: var(--muted); text-align: center; }
 .card label, .field-label { font-size: 0.85rem; color: var(--muted); margin-top: 0.5rem; }
 .field-label.center { text-align: center; }
