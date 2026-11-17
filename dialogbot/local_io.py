@@ -112,7 +112,12 @@ class LocalDialogIO:
         await self.record(channel_name, "button_click", label, user=action.display_name)
         return action
 
-    async def open_menu(self, channel_name: str, choices: list[MenuChoice]) -> MenuHandle:
+    async def open_menu(
+        self,
+        channel_name: str,
+        choices: list[MenuChoice],
+        timeout_seconds: float | None = None,
+    ) -> MenuHandle:
         text = " | ".join(f"{choice.index}:{choice.text}" for choice in choices)
         await self.record(channel_name, "menu", text)
         return LocalMenuHandle(channel_name, choices)

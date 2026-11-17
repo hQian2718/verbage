@@ -151,7 +151,12 @@ class DiscordDialogIO:
             return None
         return UserAction(str(view.user.id), view.user.display_name)
 
-    async def open_menu(self, channel_name: str, choices: list[MenuChoice]) -> MenuHandle:
+    async def open_menu(
+        self,
+        channel_name: str,
+        choices: list[MenuChoice],
+        timeout_seconds: float | None = None,
+    ) -> MenuHandle:
         channel = await self.get_or_create_channel(channel_name)
         view = MenuView(choices)
         message = await self.retry_discord_call(

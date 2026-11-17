@@ -1,0 +1,100 @@
+<!--
+Copyright (C) 2026 Kuan Qian
+SPDX-License-Identifier: GPL-3.0-only
+-->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="An interactive story you play with friends in your browser.">
+  <title>Verbage</title>
+  <link rel="icon" href="favicon.png">
+  <link rel="stylesheet" href="static/style.css">
+</head>
+<body>
+  <div id="banner" role="status" hidden></div>
+
+  <section id="start" class="screen" hidden>
+    <div class="card">
+      <img class="logo" src="logo.png" alt="" width="72" height="72">
+      <h1 id="start-title">Verbage</h1>
+      <p class="lede">You are a waiter at a corporate dinner, some People's Silk Factory of Hangzhou. Surely it will be a normal night ...</p>
+
+      <label for="name">Your name</label>
+      <input id="name" type="text" maxlength="32" autocomplete="nickname" placeholder="Player">
+
+      <span class="field-label">Your portrait <span class="optional">(optional)</span></span>
+      <div id="painter"></div>
+
+      <p id="start-error" class="error" role="alert" hidden></p>
+
+      <div class="entry">
+        <form id="join-form">
+          <label for="join-code">Room code</label>
+          <div class="row">
+            <input id="join-code" type="text" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABCD">
+            <button id="join-button" type="submit">Join room</button>
+          </div>
+        </form>
+        <span class="or">or</span>
+        <button id="create-button" class="primary" type="button">Create a room</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="lobby" class="screen" hidden>
+    <div class="card">
+      <span class="field-label center">Room code</span>
+      <h1 id="lobby-code" class="code"></h1>
+      <label for="invite-link">Invite link</label>
+      <div class="row">
+        <input id="invite-link" type="text" readonly>
+        <button id="copy-link" type="button">Copy</button>
+      </div>
+      <span class="field-label">Players</span>
+      <ul id="lobby-players" class="players"></ul>
+      <button id="lobby-start" class="primary" type="button">Start the game</button>
+      <button class="quiet leave-button" type="button">Leave room</button>
+      <p class="hint">1 to 4 players recommended</p>
+    </div>
+  </section>
+
+  <section id="game" class="screen" hidden>
+    <aside id="sidebar">
+      <header>
+        <img class="logo" src="logo.png" alt="" width="28" height="28">
+        <span id="game-title">Verbage</span>
+      </header>
+      <nav id="channels" aria-label="Channels"></nav>
+      <div id="roster">
+        <span class="field-label">Room <span id="room-code" class="code-inline"></span></span>
+        <ul id="game-players" class="players compact"></ul>
+      </div>
+      <footer>
+        <button type="button" class="quiet end-button"></button>
+        <button type="button" class="quiet leave-button">Leave</button>
+      </footer>
+    </aside>
+
+    <main>
+      <header id="channel-header">
+        <h2 id="channel-name"></h2>
+        <div class="mobile-actions">
+          <button type="button" class="quiet end-button"></button>
+          <button type="button" class="quiet leave-button">Leave</button>
+        </div>
+      </header>
+      <div id="messages" aria-live="polite"></div>
+      <div id="typing" aria-hidden="true"><span></span><span></span><span></span></div>
+      <form id="composer" autocomplete="off">
+        <input id="composer-input" type="text" maxlength="500" aria-label="Message">
+        <button class="primary" type="submit">Send</button>
+      </form>
+    </main>
+  </section>
+
+  <script src="static/painter.js"></script>
+  <script src="static/app.js"></script>
+</body>
+</html>

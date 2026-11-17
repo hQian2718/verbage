@@ -455,16 +455,21 @@ class GameSession:
                 context.channel_name,
             )
             return
-        handle = await self.io.open_menu(context.channel_name, visible)
+        # The timeout itself is enforced below; adapters only get it so they can
+        # show players how long the menu stays open.
+        timeout_seconds = None
+        if statement.timeout_seconds is not None:
+            timeout_seconds = statement.timeout_seconds * self.wait_scale
+        handle = await self.io.open_menu(context.channel_name, visible, timeout_seconds)
         try:
             while True:
                 try:
-                    if statement.timeout_seconds is None:
+                    if timeout_seconds is None:
                         index, action = await self.io.wait_for_menu_click(handle)
                     else:
                         index, action = await asyncio.wait_for(
                             self.io.wait_for_menu_click(handle),
-                            timeout=statement.timeout_seconds * self.wait_scale,
+                            timeout=timeout_seconds,
                         )
                 except asyncio.TimeoutError:
                     if statement.timeout_body:

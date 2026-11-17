@@ -134,6 +134,11 @@ current bot process. Leave it blank or unset in production.
 
 Game state is currently stored in memory.
 
+To play in a browser instead of Discord, run `python web.py` and open
+<http://127.0.0.1:8080>. Players create or join rooms with a short code; no
+Discord token is needed. See
+[docs/web.md](docs/web.md).
+
 Each server gets its own active game session. A restart drops in-memory sessions
 for all servers, but existing Discord channels and transcripts remain.
 
@@ -267,5 +272,7 @@ Recent examples to copy from:
   point of view.
 - [Local Testing](docs/local-testing.md) explains how to test scripts and
   runtime behavior without Discord.
+- [Web Frontend](docs/web.md) explains how to run and deploy the browser
+  version, which needs no Discord account.
 - [Deployment](docs/deployment.md) shows an example of how to deploy Verbage to
   a virtual machine so that it runs persistently. 
