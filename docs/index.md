@@ -42,7 +42,7 @@ pip install -e .
 
 ## The Syntax of Verbage
 
-Note: I'll be adding images later! They will demonstrate what the output of these example scripts look like 
+The animations beside each example show what it looks like when the game runs in Discord. The highlighted line is the one Verbage is running. Press **Replay** to watch one again.
 
 Verbage scripts are plain text files ending in `.script`. You write scenes in the order they should happen, with choices and logic where players can change the story.
 
@@ -59,9 +59,7 @@ The label "setup" is special. When placed in the main script (which must be titl
 
 Here's what this minimal story looks like in Discord. Players start the game by typing a **slash command** in Discord: `/start`.
 
-Image Placeholder: place a screenshot immediately after this paragraph showing the script beside the Discord output.
-
-Alt text: A code editor shows `label setup:` with one narrator line. Next to it, a Discord channel shows a Narrator message saying "You stand outside a restaurant."
+<div class="vb-demo" data-demo="setup" role="img" aria-label="Alice types /start in a Discord server. The bot replies &quot;Starting the game.&quot;, a new #game channel appears, and the bot posts the narration &quot;You stand outside a restaurant.&quot; while line 2 of the script is highlighted."></div>
 
 You can make a story entirely in the setup label! However, it may be easier to separate the story into managable chunks and give each their own label. 
 
@@ -89,9 +87,7 @@ Three rules are worth remembering:
 
 For example, `jump act_1.begin` jumps to `label begin:` inside `game/act_1.script`.
 
-Image Placeholder: place a file-tree screenshot after the directory example.
-
-Alt text: A project file tree shows a `game` folder containing `main.script`, `characters.script`, `act_1.script`, and an `images` folder with character images.
+<div class="vb-demo" data-demo="files" role="img" aria-label="A file tree of the game folder beside a terminal running check.py, which reads each script and image and reports 2 labels, 2 characters, 2 images and 0 defaults."></div>
 
 
 ### Defining Your Characters
@@ -115,9 +111,7 @@ label setup:
 
 In Discord, `"Jia Li"` is the display name. The script name `jia` is a shorthand for your use while writing the script. The `image` value is optional; if you include it, Verbage looks for an image named "jiali" in the game's images folder, such as `game/images/jiali.png` or `game/images/jiali.jpg`. It will be used as the character's avatar.
 
-Image Placeholder: place a screenshot after this explanation showing character dialogue with a custom avatar.
-
-Alt text: A Discord message appears from Jia Li with a custom profile image. The message says, "Welcome. Your table is almost ready."
+<div class="vb-demo" data-demo="character" role="img" aria-label="As the define block and then the dialogue line are highlighted, a Discord message appears from Jia Li with a pixel-art avatar saying &quot;Welcome. Your table is almost ready.&quot;"></div>
 
 As an example of a second character, let's define a narrator:
 
@@ -154,9 +148,7 @@ In this case, `jump` moves the story to another label and does not come back. Th
 
 The `channel="Entrance"` is a parameter that tells Verbage where this label should be played out in Discord. If the Discord channel does not exist yet, Verbage will create it. If you leave out `channel=`, the label uses the default channel, which you can also configure by going to the ".env" file. 
 
-Image Placeholder: place a screenshot here showing the automatically created `Entrance` channel.
-
-Alt text: A Discord sidebar shows a game category with an `Entrance` text channel. The channel contains narrator messages from the entrance and door labels.
+<div class="vb-demo" data-demo="channels" role="img" aria-label="The jump to the entrance label creates an #entrance channel in the Discord sidebar, where the Narrator posts &quot;You stand outside a locked door.&quot; and then &quot;There is a keypad beside the door.&quot;"></div>
 
 `jump` can also jump back, letting you reuse earlier sections. This example shows a door that won't open.
 
@@ -198,9 +190,7 @@ label door(channel="Entrance"):
 
 As soon as one player clicks a button, the chosen option will run any commands inside it. The story continues after the menu unless that option uses `jump`.
 
-Image Placeholder: place a screenshot after this menu example showing the two Discord buttons.
-
-Alt text: A Discord message contains two clickable buttons labeled "Enter a code" and "Walk away" below the narrator text "The keypad glows blue."
+<div class="vb-demo" data-demo="menu" role="img" aria-label="Under the narrator text &quot;The keypad glows blue.&quot;, two buttons appear: &quot;Enter a code&quot; and &quot;Walk away&quot;. Alice clicks &quot;Walk away&quot;, the buttons are disabled, and the Narrator says &quot;You step back from the door.&quot; then &quot;The night feels colder now.&quot;"></div>
 
 You can hide or show options with `if`:
 
@@ -218,9 +208,7 @@ label door(channel="Entrance"):
 
 At first, only "Enter a code" appears because  is `True`. After the story sets `door_locked` to `False`, "Open the door" can appear instead.
 
-Image Placeholder: place a before-and-after image here: first the locked-door menu, then the unlocked-door menu.
-
-Alt text: Two Discord screenshots are shown side by side. The first shows only an "Enter a code" button. The second, after the lock opens, shows an "Open the door" button.
+<div class="vb-demo" data-demo="conditional" role="img" aria-label="While door_locked is True, the menu shows only &quot;Enter a code&quot;. After the players crack the code, door_locked becomes False and the menu shows &quot;Open the door&quot; instead. Bob clicks it and the Narrator says &quot;You enter the restaurant&#x27;s basement.&quot;"></div>
 
 Jumps in menu options lets you branch stories, but using a variable like `door_locked` lets you remember a player choice and change the story based on that later! Let's learn how to use them.
 
@@ -255,8 +243,8 @@ label report(channel="Great Hall"):
 ```
 
 You can place if blocks inside labels, menus, buttons, and input cases.
-Image Placeholder: place a diagram or screenshot here showing the same scene producing different text depending on clues_found.
-Alt text: Three possible Discord outputs are shown for the report scene: no clues, some clues, and enough clues to accuse someone.
+
+<div class="vb-demo" data-demo="branches" role="img" aria-label="The report scene runs three times. With clues_found = 0 the Narrator says &quot;You are still completely in the dark.&quot;; with 1, &quot;You have a theory, but not enough proof.&quot;; with 3, &quot;You have enough evidence to accuse someone.&quot;"></div>
 
 ### Showing Images
 
@@ -280,12 +268,7 @@ by URL:
 show image "https://example.com/restaurant_front.png"
 ```
 
-Image Placeholder: place a screenshot here showing a local image posted in a
-Discord channel with its caption.
-
-Alt text: A Discord channel shows a large image of a restaurant exterior. Above
-or beside it, the caption reads, "The restaurant waits under the old willow
-tree."
+<div class="vb-demo" data-demo="image" role="img" aria-label="The bot posts the caption &quot;The restaurant waits under the old willow tree.&quot; with a pixel-art picture of a restaurant at night beside a willow tree."></div>
 
 ### Breaktime!
 
@@ -326,9 +309,7 @@ label overhear(channel="Dining Room"):
 
 In this example, if no one clicks within 20 seconds, the `timeout:` branch runs.
 
-Image Placeholder: place a screenshot here showing a timed menu after it has expired.
-
-Alt text: A Discord menu has disabled buttons, and the narrator has posted "The moment passes."
+<div class="vb-demo" data-demo="timed" role="img" aria-label="Two buttons appear, &quot;Interrupt the conversation&quot; and &quot;Keep listening&quot;. Twenty seconds pass with no clicks, the buttons are disabled, and the Narrator says &quot;The moment passes.&quot;"></div>
 
 ### Letting Players Type Responses
 
@@ -353,9 +334,7 @@ label enter_code(channel="Entrance"):
 
 The prompt is posted in the current channel. Verbage waits for the next player message, stores it in `code_entered`, then checks the cases from top to bottom. `case _:` means "anything else."
 
-Image Placeholder: place a screenshot here showing the prompt, the player's typed answer, and the bot's response.
-
-Alt text: In Discord, the bot asks "Enter the code on the keypad." A player types "dead beef." The narrator responds, "The lock snaps open."
+<div class="vb-demo" data-demo="input" role="img" aria-label="The bot asks &quot;Enter the code on the keypad.&quot; Alice types &quot;dead beef&quot;, which is stored in code_entered. The first case matches, the Narrator says &quot;The lock snaps open.&quot;, and door_locked becomes False."></div>
 
 For looser matching, use `contains`:
 
@@ -373,9 +352,7 @@ label restroom(channel="Restroom"):
 
 `contains` is case-insensitive, so `Portrait`, `portrait`, and `PORTRAIT` all work.
 
-Image Placeholder: place a screenshot after this example showing a natural-language player response.
-
-Alt text: A player types "I look behind the portrait." The bot recognizes the word "portrait" and replies, "You find a hidden button behind the frame."
+<div class="vb-demo" data-demo="contains" role="img" aria-label="The bot asks &quot;What do you inspect?&quot; Carol types &quot;I look behind the portrait.&quot; The answer contains &quot;portrait&quot;, so the Narrator replies &quot;You find a hidden button behind the frame.&quot;"></div>
 
 ### Using Persistent Menus For Multiplayer Moments
 
@@ -407,9 +384,7 @@ label basement_open(channel="Basement"):
 
 `username()` returns the Discord display name of the player who clicked the menu option or button. That lets the story acknowledge who acted.
 
-Image Placeholder: place a screenshot here showing multiple player names appearing as they click.
-
-Alt text: A Discord channel shows a persistent "Push together" button. Messages say that Alice, Bob, and Carol each push the door, followed by "With everyone pushing, the door finally opens."
+<div class="vb-demo" data-demo="persistent" role="img" aria-label="A persistent &quot;Push together&quot; button stays active as Alice, Bob and Carol click it in turn. The Narrator announces each push as push_count rises to 3, then says &quot;With everyone pushing, the door finally opens.&quot;"></div>
 
 You can also put a timeout on a persistent menu:
 
@@ -423,9 +398,7 @@ label closing_door(channel="Basement"):
             n "The door slams shut."
 ```
 
-Image Placeholder: place a screenshot here showing a persistent menu that timed out.
-
-Alt text: The persistent menu buttons are disabled, and the narrator says, "The door slams shut."
+<div class="vb-demo" data-demo="persistentTimeout" role="img" aria-label="Alice clicks the persistent &quot;Hold the door&quot; button and the Narrator says &quot;Alice keeps the door from closing.&quot; After 30 seconds the button is disabled and the Narrator says &quot;The door slams shut.&quot;"></div>
 
 ### Running Stories In Multiple Channels
 
@@ -460,13 +433,9 @@ label banquet_hall(channel="Banquet Hall"):
 
 `channel link "Return to Great Hall" to "Great Hall"` posts a Discord button that helps players move to another channel. Bots cannot force a player's Discord view to switch, so this creates a convenient link instead.
 
-Image Placeholder: place a wide screenshot here showing the Discord channel list with Great Hall, Kitchen, Restroom, and Banquet Hall.
+<div class="vb-demo" data-demo="run" role="img" aria-label="After the Great Hall message, run creates #kitchen, #restroom and #banquet-hall channels, which fill with their scenes at the same time. Alice, Bob and Carol each click a button in one room, each room ends with a &quot;Return to Great Hall&quot; link, and the Great Hall then says &quot;Everyone returns to the Great Hall.&quot;"></div>
 
-Alt text: Discord shows a game category with four text channels. The Kitchen, Restroom, and Banquet Hall channels each contain a small scene and a "Return to Great Hall" link button.
-
-Image Placeholder: place a second screenshot after the previous one showing the Great Hall after all three side scenes finish.
-
-Alt text: The Great Hall channel shows the setup message, then later a message saying, "Everyone returns to the Great Hall."
+<div class="vb-demo" data-demo="runReturn" role="img" aria-label="The Great Hall waits on the run line while the three side scenes finish one by one. Once nothing is left to wait for, the Narrator says &quot;Everyone returns to the Great Hall.&quot;"></div>
 
 ### Additional Features
 
@@ -483,9 +452,7 @@ label study(channel="Study"):
         n "$(investigator) notices fresh footprints."
 ```
 
-Image Placeholder: place a screenshot here showing a single "Look around" button before and after it is clicked.
-
-Alt text: A Discord message shows one button labeled "Look around." After a player clicks it, the bot says that player's name and describes the footprints.
+<div class="vb-demo" data-demo="button" role="img" aria-label="A single &quot;Look around&quot; button appears. Alice clicks it, investigator is set to &quot;Alice&quot;, and the Narrator says &quot;Alice notices fresh footprints.&quot;"></div>
 
 Add `timeout 15` if the button should expire:
 
@@ -501,9 +468,7 @@ label study(channel="Study"):
 clear channel "Restroom"
 ```
 
-Image Placeholder: place a before-and-after screenshot here only if your tutorial wants to emphasize cleanup.
-
-Alt text: The first Discord screenshot shows several old messages in the Restroom channel. The second screenshot shows the channel cleared, ready for the next scene.
+<div class="vb-demo" data-demo="clear" role="img" aria-label="The #restroom channel holds earlier messages. After the line &quot;A cleaner sweeps through the room.&quot;, clear channel removes every message, and the Narrator posts &quot;The restroom is quiet again.&quot;"></div>
 
 `time limit` sets a game-wide deadline. It usually belongs in `label setup:`.
 

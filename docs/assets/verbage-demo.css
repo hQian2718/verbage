@@ -1,0 +1,638 @@
+/*
+Copyright (C) 2026 Kuan Qian
+SPDX-License-Identifier: GPL-3.0-only
+
+Animated "script beside chat" demos for the tutorial. The markup is built by
+verbage-demo.js from a placeholder <div class="vb-demo" data-demo="...">.
+*/
+
+.vb-demo {
+  --vb-h: 360px;
+  --vb-bg: #313338;
+  --vb-side: #2b2d31;
+  --vb-deep: #1e1f22;
+  --vb-text: #dbdee1;
+  --vb-bright: #f2f3f5;
+  --vb-muted: #949ba4;
+  --vb-active: #404249;
+  --vb-blurple: #5865f2;
+  --vb-grey: #4e5058;
+  --vb-input: #383a40;
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: 12px;
+  margin: 1.5rem 0 2.25rem;
+  font-size: 14px;
+  line-height: 1.375;
+}
+
+.vb-demo:not(.vb-ready) {
+  min-height: var(--vb-h);
+  border: 1px dashed var(--rule, #e5ddd1);
+  border-radius: 8px;
+}
+
+/* ---------- script pane ---------- */
+
+.vb-code {
+  display: flex;
+  flex-direction: column;
+  height: var(--vb-h);
+  min-width: 0;
+  overflow: hidden;
+  background: var(--code, #f4efe8);
+  border: 1px solid var(--rule, #e5ddd1);
+  border-radius: 8px;
+}
+
+.vb-code-bar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px 6px 12px;
+  border-bottom: 1px solid var(--rule, #e5ddd1);
+  color: var(--muted, #625a62);
+  font-size: 12px;
+}
+
+.vb-file {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-weight: 600;
+}
+
+.vb-replay {
+  border: 1px solid var(--rule, #e5ddd1);
+  border-radius: 999px;
+  padding: 2px 10px;
+  background: var(--panel, #fff);
+  color: var(--ink, #242124);
+  font: inherit;
+  cursor: pointer;
+}
+
+.vb-replay:hover {
+  border-color: var(--accent, #8d2f3f);
+  color: var(--accent, #8d2f3f);
+}
+
+.vb-replay:focus-visible {
+  outline: 2px solid var(--accent, #8d2f3f);
+  outline-offset: 2px;
+}
+
+.vb-lines {
+  flex: 1;
+  margin: 0;
+  padding: 8px 0;
+  overflow: auto;
+  list-style: none;
+  font: 12.5px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  scrollbar-width: thin;
+}
+
+.vb-lines li {
+  display: flex;
+  min-width: max-content;
+  padding-right: 14px;
+  white-space: pre;
+  transition: background-color 0.2s;
+}
+
+.vb-ln {
+  flex: none;
+  width: 2.4em;
+  margin-right: 12px;
+  color: #a39a90;
+  text-align: right;
+  user-select: none;
+}
+
+.vb-lines li.vb-on {
+  background: rgba(141, 47, 63, 0.13);
+  box-shadow: inset 3px 0 var(--accent, #8d2f3f);
+}
+
+.vb-lines li.vb-on .vb-ln {
+  color: var(--accent, #8d2f3f);
+  font-weight: 700;
+}
+
+.vb-k { color: #8d2f3f; font-weight: 600; }
+.vb-s { color: #2b6b3e; }
+.vb-c { color: #8a8178; font-style: italic; }
+.vb-n { color: #6b46a8; }
+.vb-dir { font-weight: 700; }
+
+.vb-vars {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  padding: 6px 12px;
+  border-top: 1px solid var(--rule, #e5ddd1);
+  font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.vb-vars:empty {
+  display: none;
+}
+
+.vb-var b {
+  font-weight: 600;
+}
+
+.vb-var.vb-flash {
+  animation: vb-flash 1s ease-out;
+}
+
+/* ---------- chat window ---------- */
+
+.vb-win {
+  position: relative;
+  display: flex;
+  height: var(--vb-h);
+  min-width: 0;
+  overflow: hidden;
+  background: var(--vb-bg);
+  border-radius: 8px;
+  color: var(--vb-text);
+  font-family: "Noto Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+.vb-side {
+  flex: none;
+  width: 156px;
+  padding: 10px 8px;
+  overflow: hidden;
+  background: var(--vb-side);
+}
+
+.vb-server {
+  margin: -10px -8px 10px;
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--vb-deep);
+  color: var(--vb-bright);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vb-cat {
+  padding: 6px 6px 4px;
+  color: var(--vb-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.vb-chan {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 1px 0;
+  padding: 4px 8px;
+  border-radius: 4px;
+  color: var(--vb-muted);
+  font-weight: 500;
+  white-space: nowrap;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.vb-chan span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vb-hash {
+  flex: none;
+  font-size: 18px;
+  line-height: 1;
+  opacity: 0.65;
+}
+
+.vb-chan.vb-active {
+  background: var(--vb-active);
+  color: #fff;
+}
+
+.vb-chan.vb-unread {
+  color: var(--vb-bright);
+  font-weight: 600;
+}
+
+.vb-chan.vb-unread::before {
+  content: "";
+  position: absolute;
+  left: -8px;
+  width: 4px;
+  height: 8px;
+  border-radius: 0 4px 4px 0;
+  background: var(--vb-bright);
+}
+
+.vb-chan.vb-new {
+  animation: vb-chan-in 0.9s ease-out;
+}
+
+.vb-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.vb-head {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  height: 44px;
+  padding: 0 14px;
+  border-bottom: 1px solid #26272b;
+  color: var(--vb-bright);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.vb-log {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+.vb-msgs {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 10px 0 6px;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.vb-msgs::-webkit-scrollbar {
+  display: none;
+}
+
+.vb-msgs > :first-child {
+  margin-top: auto;
+}
+
+.vb-msgs[hidden] {
+  display: none;
+}
+
+.vb-msg {
+  display: flex;
+  gap: 12px;
+  padding: 2px 14px;
+  animation: vb-msg-in 0.28s ease-out;
+}
+
+.vb-msg.vb-first {
+  margin-top: 12px;
+}
+
+.vb-msg.vb-cont .vb-av,
+.vb-msg.vb-cont .vb-meta {
+  display: none;
+}
+
+.vb-msg.vb-cont .vb-body {
+  margin-left: 48px;
+}
+
+.vb-av {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  margin-top: 2px;
+  overflow: hidden;
+  border-radius: 50%;
+  color: #fff;
+  font-weight: 700;
+}
+
+.vb-av img {
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
+
+.vb-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.vb-reply {
+  margin: 0 0 2px 0;
+  color: var(--vb-muted);
+  font-size: 12px;
+}
+
+.vb-reply b {
+  color: var(--vb-text);
+  font-weight: 600;
+}
+
+.vb-name {
+  margin-right: 5px;
+  font-weight: 600;
+}
+
+.vb-tag {
+  margin-right: 6px;
+  padding: 0 4px;
+  border-radius: 3px;
+  background: var(--vb-blurple);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  vertical-align: 1px;
+}
+
+.vb-time {
+  color: var(--vb-muted);
+  font-size: 11px;
+}
+
+.vb-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.vb-text code {
+  padding: 0 3px;
+  border-radius: 3px;
+  background: var(--vb-deep);
+  color: var(--vb-text);
+  font-size: 0.85em;
+}
+
+.vb-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 6px 0 2px;
+}
+
+.vb-btn {
+  min-height: 30px;
+  padding: 4px 14px;
+  border: 0;
+  border-radius: 4px;
+  background: var(--vb-grey);
+  color: #fff;
+  font: inherit;
+  font-weight: 500;
+  cursor: default;
+  transition: filter 0.15s, transform 0.12s, opacity 0.25s;
+}
+
+.vb-btn.vb-primary {
+  background: var(--vb-blurple);
+}
+
+.vb-btn.vb-link::after {
+  content: "\2197";
+  margin-left: 6px;
+  font-size: 0.9em;
+}
+
+.vb-btn.vb-press {
+  filter: brightness(0.78);
+  transform: scale(0.95);
+}
+
+.vb-btn.vb-off {
+  opacity: 0.5;
+}
+
+.vb-btn.vb-new {
+  animation: vb-btn-in 0.35s ease-out;
+}
+
+.vb-image {
+  display: block;
+  width: 100%;
+  max-width: 280px;
+  margin-top: 6px;
+  border-radius: 8px;
+  image-rendering: pixelated;
+}
+
+.vb-pill {
+  align-self: center;
+  margin: 10px 14px;
+  padding: 2px 10px;
+  border: 1px dashed #5c5f66;
+  border-radius: 999px;
+  color: var(--vb-muted);
+  font-size: 12px;
+  font-style: italic;
+  text-align: center;
+  animation: vb-msg-in 0.28s ease-out;
+}
+
+.vb-msg.vb-gone,
+.vb-pill.vb-gone {
+  opacity: 0;
+  transform: translateX(16px);
+  transition: opacity 0.35s, transform 0.35s;
+}
+
+.vb-typing {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  height: 20px;
+  padding: 0 16px;
+  color: var(--vb-muted);
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.vb-typing:empty::before {
+  content: "\00a0";
+}
+
+.vb-dots {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.vb-dots i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--vb-text);
+  animation: vb-dot 1.2s infinite ease-in-out;
+}
+
+.vb-dots i:nth-child(2) { animation-delay: 0.15s; }
+.vb-dots i:nth-child(3) { animation-delay: 0.3s; }
+
+.vb-compose {
+  display: flex;
+  flex: none;
+  align-items: center;
+  height: 40px;
+  margin: 0 14px 12px;
+  padding: 0 14px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--vb-input);
+  color: #6d6f78;
+  white-space: nowrap;
+}
+
+.vb-compose.vb-typed {
+  color: var(--vb-text);
+}
+
+.vb-compose.vb-typed::after {
+  content: "";
+  width: 1px;
+  height: 1.1em;
+  margin-left: 1px;
+  background: var(--vb-text);
+  animation: vb-caret 1s steps(1) infinite;
+}
+
+.vb-cursor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 3;
+  display: flex;
+  align-items: flex-start;
+  pointer-events: none;
+  transition: transform 0.75s cubic-bezier(0.3, 0.7, 0.3, 1), opacity 0.3s;
+}
+
+.vb-cursor svg {
+  width: 18px;
+  height: 18px;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5));
+}
+
+.vb-cursor span {
+  margin: 14px 0 0 -2px;
+  padding: 0 6px;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 18px;
+}
+
+.vb-cursor.vb-click svg {
+  transform: scale(0.85);
+}
+
+/* ---------- terminal window ---------- */
+
+.vb-win.vb-term {
+  flex-direction: column;
+  background: var(--vb-deep);
+}
+
+.vb-term-out {
+  flex: 1;
+  margin: 0;
+  padding: 12px 14px;
+  overflow: auto;
+  color: #c9d1c9;
+  font: 12.5px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  white-space: pre-wrap;
+}
+
+.vb-term-out div {
+  animation: vb-msg-in 0.25s ease-out;
+}
+
+.vb-term-out .vb-prompt { color: #fff; }
+.vb-term-out .vb-note { color: #8d96a0; }
+.vb-term-out .vb-ok { color: #7bd88f; }
+
+/* ---------- motion ---------- */
+
+@keyframes vb-msg-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes vb-btn-in {
+  from { opacity: 0; transform: scale(0.85); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes vb-chan-in {
+  0% { opacity: 0; transform: translateX(-12px); background: rgba(88, 101, 242, 0.55); }
+  40% { opacity: 1; transform: none; background: rgba(88, 101, 242, 0.55); }
+  100% { background: transparent; }
+}
+
+@keyframes vb-flash {
+  0% { background: rgba(141, 47, 63, 0.25); }
+  100% { background: transparent; }
+}
+
+@keyframes vb-dot {
+  0%, 60%, 100% { opacity: 0.3; transform: none; }
+  30% { opacity: 1; transform: translateY(-3px); }
+}
+
+@keyframes vb-caret {
+  50% { opacity: 0; }
+}
+
+@media (max-width: 760px) {
+  .vb-demo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .vb-code {
+    height: auto;
+    max-height: 240px;
+  }
+}
+
+@media (max-width: 480px) {
+  .vb-side {
+    width: 112px;
+  }
+
+  .vb-msg {
+    gap: 10px;
+    padding: 2px 10px;
+  }
+
+  .vb-msg.vb-cont .vb-body {
+    margin-left: 42px;
+  }
+
+  .vb-av {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vb-demo *,
+  .vb-demo *::before,
+  .vb-demo *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
